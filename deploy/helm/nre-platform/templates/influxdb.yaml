@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: influxdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      initContainers:
+        - name: influxdb-init
+          image: "{{ .Values.influxdb.image.repository }}:{{ .Values.influxdb.image.tag }}"
+          imagePullPolicy: {{ .Values.influxdb.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - |
+              influxd &
+              INFLUX_PID=$!
+              until influx ping 2>/dev/null; do sleep 2; done
+              influx setup \
+                --username {{ .Values.influxdb.username | quote }} \
+                --password {{ .Values.influxdb.password | quote }} \
+                --org {{ .Values.influxdb.org | quote }} \
+                --bucket {{ .Values.influxdb.bucket | quote }} \
+                --token {{ .Values.influxdb.adminToken | quote }} \
+                --force || true
+              kill $INFLUX_PID
+              wait $INFLUX_PID || true
+          volumeMounts:
+            - name: influxdb-data
+              mountPath: /var/lib/influxdb2
+      containers:
+        - name: influxdb
+          image: "{{ .Values.influxdb.image.repository }}:{{ .Values.influxdb.image.tag }}"
+          imagePullPolicy: {{ .Values.influxdb.image.pullPolicy }}
+          ports:
+            - containerPort: 8086
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: 8086
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8086
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          volumeMounts:
+            - name: influxdb-data
+              mountPath: /var/lib/influxdb2
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+      volumes:
+        - name: influxdb-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: influxdb
+spec:
+  selector:
+    app: influxdb
+  type: {{ .Values.influxdb.service.type }}
+  ports:
+    - name: http
+      port: 8086
+      targetPort: 8086
+      {{- if eq .Values.influxdb.service.type "NodePort" }}
+      nodePort: {{ .Values.influxdb.service.nodePort }}
+      {{- end }}

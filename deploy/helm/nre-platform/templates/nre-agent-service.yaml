@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nre-agent
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    app: nre-agent
+  ports:
+    - protocol: TCP
+      port: {{ .Values.nreAgent.service.port | default 8090 }}
+      targetPort: {{ .Values.nreAgent.service.port | default 8090 }}
+  type: {{ .Values.nreAgent.service.type | default "ClusterIP" }}

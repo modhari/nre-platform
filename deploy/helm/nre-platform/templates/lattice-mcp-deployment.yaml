@@ -1,0 +1,99 @@
+# =============================================================================
+# lattice-mcp-deployment.yaml
+#
+# Runs the FastAPI server that exposes BGP history queries and remediation
+# planning capabilities to mcp_server.
+#
+# Image built from:  services/lattice/Dockerfile.mcp
+# Entrypoint:        uvicorn internal.mcp.server:APP
+#
+# Startup sequence (handled inside server.py):
+#   1. BgpHistoryStore loads JSON files from /data/bgp_history (PVC)
+#   2. If store is empty, seeds with demo routes so system is queryable
+#   3. CapabilityRegistry wires bgp_history_query + bgp_remediation_plan
+#   4. Readiness probe at /health/ready returns 200
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lattice-mcp
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: lattice-mcp
+    {{- include "nre.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.latticeMcp.replicaCount }}
+  selector:
+    matchLabels:
+      app: lattice-mcp
+  template:
+    metadata:
+      labels:
+        app: lattice-mcp
+    spec:
+      containers:
+        - name: lattice-mcp
+          image: "{{ .Values.latticeMcp.image.repository }}:{{ .Values.latticeMcp.image.tag }}"
+          imagePullPolicy: {{ .Values.latticeMcp.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+
+          env:
+            # ── BGP history persistence ────────────────────────────────────────
+            # Must match the mountPath below. When this directory contains JSON
+            # files from a previous run, the store reloads them on startup so
+            # history survives pod restarts without reseeding from scratch.
+            - name: BGP_HISTORY_PERSIST_DIR
+              value: {{ .Values.bgpHistoryPersistence.mountPath | quote }}
+
+            # ── Auth token ────────────────────────────────────────────────────
+            # Must match LATTICE_MCP_AUTH_TOKEN set in mcp_server env so that
+            # mcp_server can authenticate its calls to lattice-mcp.
+            - name: BGP_HISTORY_AUTH_TOKEN
+              value: {{ .Values.mcpServer.env.LATTICE_MCP_AUTH_TOKEN | quote }}
+
+            # ── Audit log ─────────────────────────────────────────────────────
+            # One JSON line per capability invocation. Written to the same PVC
+            # as the history store so it persists alongside the data.
+            - name: MCP_AUDIT_LOG_PATH
+              value: {{ .Values.latticeMcp.env.MCP_AUDIT_LOG_PATH | default "/data/bgp_history/mcp_audit.jsonl" | quote }}
+
+          volumeMounts:
+            {{- if .Values.bgpHistoryPersistence.enabled }}
+            # Mount the PVC so JSON persistence files survive pod restarts
+            - name: bgp-history
+              mountPath: {{ .Values.bgpHistoryPersistence.mountPath | quote }}
+            {{- end }}
+
+          # ── Readiness probe ────────────────────────────────────────────────
+          # Uses the /health/ready endpoint added in server.py.
+          # Returns 200 only after the capability registry and history store
+          # are fully initialised. Prevents traffic before the store is loaded.
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          # ── Liveness probe ─────────────────────────────────────────────────
+          # Uses the /health/live endpoint. Returns 200 as long as the
+          # uvicorn process is alive. Triggers a pod restart on failure.
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 15
+
+          resources:
+            {{- toYaml .Values.latticeMcp.resources | nindent 12 }}
+
+      volumes:
+        {{- if .Values.bgpHistoryPersistence.enabled }}
+        # Bind the PVC created by lattice-mcp-pvc.yaml
+        - name: bgp-history
+          persistentVolumeClaim:
+            claimName: lattice-mcp-bgp-history
+        {{- end }}

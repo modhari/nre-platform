@@ -1,0 +1,40 @@
+# =============================================================================
+# Additions — append to the bottom of your existing values.yaml
+# =============================================================================
+
+# ── BGP history persistence ───────────────────────────────────────────────────
+# Controls the PVC mounted at /data/bgp_history inside lattice-mcp.
+# The BgpHistoryStore flushes all four tables (snapshots, summaries,
+# events, anomalies) to JSON files here after every write operation.
+# On pod restart the store reloads from disk before serving any requests.
+#
+# Set enabled: false to revert to fully in-memory operation.
+# Useful for CI where you want a clean store on every run.
+bgpHistoryPersistence:
+  enabled: true
+  size: 2Gi
+  # Must match BGP_HISTORY_PERSIST_DIR in the lattice-mcp deployment env
+  mountPath: /data/bgp_history
+
+# ── BGP RAG vendor filter ─────────────────────────────────────────────────────
+# Set this to the vendor of the devices under bgpDiagnostics.device.
+# The nre-agent passes this to mcp_server bgp.rag_context so Qdrant
+# returns vendor-specific documentation chunks rather than all vendors.
+#
+# Valid values match the tags in your Qdrant collection:
+#   arista   juniper   cisco   nokia
+#
+# Leave empty to query without vendor filtering (returns all vendors).
+# This is the safe default until you know which vendor your devices are.
+bgpRagVendor: ""
+
+# ── nre-agent: BGP vendor env var ────────────────────────────────────────────
+# Passes bgpRagVendor into the nre-agent container so loop.py can
+# include it in the bgp.rag_context call.
+# Reference this in your nre-agent-deployment.yaml env section:
+#
+#   - name: NRE_AGENT_BGP_VENDOR
+#     value: {{ .Values.bgpRagVendor | quote }}
+#
+# The nre-agent-deployment.yaml template already exists in your repo —
+# add that one env entry to its env list and you are done.

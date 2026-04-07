@@ -1,0 +1,36 @@
+{{- if .Values.observabilityPipeline.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-influx-writer
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.observabilityPipeline.kafkaInfluxWriter.replicaCount }}
+  selector:
+    matchLabels:
+      app: kafka-influx-writer
+  template:
+    metadata:
+      labels:
+        app: kafka-influx-writer
+    spec:
+      containers:
+        - name: kafka-influx-writer
+          image: "{{ .Values.observabilityPipeline.kafkaInfluxWriter.image.repository }}:{{ .Values.observabilityPipeline.kafkaInfluxWriter.image.tag }}"
+          imagePullPolicy: {{ .Values.observabilityPipeline.kafkaInfluxWriter.image.pullPolicy }}
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.observabilityPipeline.kafkaInfluxWriter.env.KAFKA_BOOTSTRAP_SERVERS | quote }}
+            - name: KAFKA_TOPICS
+              value: {{ .Values.observabilityPipeline.kafkaInfluxWriter.env.KAFKA_TOPICS | quote }}
+            - name: INFLUXDB_URL
+              value: {{ .Values.observabilityPipeline.kafkaInfluxWriter.env.INFLUXDB_URL | quote }}
+            - name: INFLUXDB_TOKEN
+              value: {{ .Values.observabilityPipeline.kafkaInfluxWriter.env.INFLUXDB_TOKEN | quote }}
+            - name: INFLUXDB_ORG
+              value: {{ .Values.observabilityPipeline.kafkaInfluxWriter.env.INFLUXDB_ORG | quote }}
+            - name: INFLUXDB_BUCKET
+              value: {{ .Values.observabilityPipeline.kafkaInfluxWriter.env.INFLUXDB_BUCKET | quote }}
+          resources:
+            {{- toYaml .Values.observabilityPipeline.kafkaInfluxWriter.resources | nindent 12 }}
+{{- end }}

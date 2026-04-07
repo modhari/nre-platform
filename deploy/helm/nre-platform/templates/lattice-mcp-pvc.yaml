@@ -1,0 +1,15 @@
+{{- if .Values.bgpHistoryPersistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lattice-mcp-bgp-history
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: lattice-mcp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.bgpHistoryPersistence.size }}
+{{- end }}

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecmp-trace
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    app: ecmp-trace
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ .Values.ecmpTrace.service.port }}
+      targetPort: {{ .Values.ecmpTrace.service.port }}
+  type: ClusterIP

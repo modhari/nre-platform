@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nre-agent
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.nreAgent.replicaCount }}
+  selector:
+    matchLabels:
+      app: nre-agent
+  template:
+    metadata:
+      labels:
+        app: nre-agent
+    spec:
+      containers:
+        - name: nre-agent
+          image: "{{ .Values.nreAgent.image.repository }}:{{ .Values.nreAgent.image.tag }}"
+          imagePullPolicy: {{ .Values.nreAgent.image.pullPolicy }}
+          env:
+            - name: NRE_AGENT_MODE
+              value: {{ .Values.nreAgent.mode | quote }}
+            - name: NRE_AGENT_SCENARIO
+              value: {{ .Values.nreAgent.env.NRE_AGENT_SCENARIO | quote }}
+            - name: NRE_AGENT_INTERVAL_SECONDS
+              value: {{ .Values.nreAgent.intervalSeconds | quote }}
+            - name: NRE_AGENT_ENABLE_API
+              value: {{ .Values.nreAgent.enableApi | quote }}
+            - name: NRE_AGENT_API_HOST
+              value: {{ .Values.nreAgent.env.NRE_AGENT_API_HOST | quote }}
+            - name: NRE_AGENT_API_PORT
+              value: {{ .Values.nreAgent.apiPort | quote }}
+            - name: NRE_AGENT_APPROVAL_DIR
+              value: {{ .Values.nreAgent.persistence.approvalPath | quote }}
+            - name: NRE_AGENT_PLAN_MEMORY_DIR
+              value: {{ .Values.nreAgent.persistence.planMemoryPath | quote }}
+            - name: NRE_AGENT_BGP_VENDOR
+              value: {{ .Values.bgpRagVendor | quote }}
+            - name: NRE_AGENT_APPROVAL_STATUS
+              value: {{ .Values.nreAgent.env.NRE_AGENT_APPROVAL_STATUS | quote }}
+            - name: NRE_AGENT_APPROVAL_COOLDOWN_SECONDS
+              value: {{ .Values.nreAgent.env.NRE_AGENT_APPROVAL_COOLDOWN_SECONDS | quote }}
+            - name: NRE_AGENT_KAFKA_ENABLED
+              value: {{ .Values.nreAgent.env.NRE_AGENT_KAFKA_ENABLED | quote }}
+            - name: NRE_AGENT_KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.nreAgent.env.NRE_AGENT_KAFKA_BOOTSTRAP_SERVERS | quote }}
+            - name: NRE_AGENT_KAFKA_INCIDENT_TOPIC
+              value: {{ .Values.nreAgent.env.NRE_AGENT_KAFKA_INCIDENT_TOPIC | quote }}
+            - name: NRE_AGENT_KAFKA_PLAN_TOPIC
+              value: {{ .Values.nreAgent.env.NRE_AGENT_KAFKA_PLAN_TOPIC | quote }}
+            - name: NRE_AGENT_RAG_ENABLED
+              value: {{ .Values.nreAgent.env.NRE_AGENT_RAG_ENABLED | quote }}
+            - name: NRE_AGENT_RAG_QDRANT_URL
+              value: {{ .Values.nreAgent.env.NRE_AGENT_RAG_QDRANT_URL | quote }}
+            - name: NRE_AGENT_RAG_COLLECTION
+              value: {{ .Values.nreAgent.env.NRE_AGENT_RAG_COLLECTION | quote }}
+            - name: QDRANT_URL
+              value: {{ .Values.lattice.env.QDRANT_URL }}
+            - name: NRE_AGENT_MCP_URL
+              value: {{ .Values.nreAgent.mcp.url | quote }}
+            {{- if .Values.bgpDiagnostics.enabled }}
+            - name: NRE_AGENT_BGP_FABRIC
+              value: {{ .Values.bgpDiagnostics.fabric | quote }}
+            - name: NRE_AGENT_BGP_DEVICE
+              value: {{ .Values.bgpDiagnostics.device | quote }}
+            - name: NRE_AGENT_BGP_SNAPSHOT_FILE
+              value: {{ .Values.bgpDiagnostics.snapshotFile | quote }}
+            {{- end }}
+          ports:
+            - containerPort: {{ .Values.nreAgent.service.port }}
+          volumeMounts:
+            - name: nre-agent-storage
+              mountPath: {{ .Values.nreAgent.persistence.mountPath }}
+            {{- if .Values.bgpDiagnostics.enabled }}
+            - name: nre-agent-bgp-snapshot
+              mountPath: {{ .Values.bgpDiagnostics.snapshotFile | quote }}
+              subPath: bgp_snapshot.json
+            {{- end }}
+          resources:
+            {{- toYaml .Values.nreAgent.resources | nindent 12 }}
+      volumes:
+        - name: nre-agent-storage
+          persistentVolumeClaim:
+            claimName: nre-agent-approvals
+        {{- if .Values.bgpDiagnostics.enabled }}
+        - name: nre-agent-bgp-snapshot
+          configMap:
+            name: nre-agent-bgp-snapshot
+        {{- end }}

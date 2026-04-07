@@ -1,0 +1,10 @@
+{{- if .Values.bgpDiagnostics.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nre-agent-bgp-snapshot
+  namespace: {{ .Values.global.namespace }}
+data:
+  bgp_snapshot.json: |
+{{ .Values.bgpDiagnostics.snapshotContent | indent 4 }}
+{{- end }}

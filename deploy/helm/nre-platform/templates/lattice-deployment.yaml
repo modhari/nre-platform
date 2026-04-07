@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lattice
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.lattice.replicaCount }}
+  selector:
+    matchLabels:
+      app: lattice
+  template:
+    metadata:
+      labels:
+        app: lattice
+    spec:
+      containers:
+        - name: lattice
+          image: "{{ .Values.lattice.image.repository }}:{{ .Values.lattice.image.tag }}"
+          imagePullPolicy: {{ .Values.lattice.image.pullPolicy }}
+          env:
+            # -------------------------------------------------
+            # Enable MCP path explicitly
+            # -------------------------------------------------
+            - name: USE_MCP
+              value: "{{ .Values.lattice.env.USE_MCP }}"
+            - name: MCP_SERVER_URL
+              value: "{{ .Values.lattice.env.MCP_SERVER_URL }}"
+            - name: MCP_AUTH_TOKEN
+              value: "{{ .Values.lattice.env.MCP_AUTH_TOKEN }}"
+            - name: MCP_HMAC_SECRET
+              value: "{{ .Values.lattice.env.MCP_HMAC_SECRET }}"
+
+            # -------------------------------------------------
+            # Default fallback scenario
+            # -------------------------------------------------
+            - name: NRE_SCENARIO
+              value: "{{ .Values.lattice.env.NRE_SCENARIO }}"
+
+            #------------------------------------------------
+            # QDRANT
+            #------------------------------------------------
+            - name: QDRANT_URL
+              value: {{ .Values.lattice.env.QDRANT_URL | quote }} 
+
+          ports:
+            - containerPort: {{ .Values.lattice.service.port }}
+
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{ .Values.lattice.service.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{ .Values.lattice.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+
+          resources:
+            {{- toYaml .Values.lattice.resources | nindent 12 }}

@@ -1,0 +1,270 @@
+# values.local.yaml — complete local dev overrides
+# Uses locally built images with Never pull policy and NodePort services.
+
+global:
+  namespace: nre-platform
+
+lattice:
+  image:
+    repository: lattice
+    tag: local
+    pullPolicy: Never
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30100
+  env:
+    USE_MCP: "true"
+    MCP_SERVER_URL: "http://mcp-server:8080"
+    MCP_AUTH_TOKEN: "change_me"
+    MCP_HMAC_SECRET: "change_me_too"
+    NRE_SCENARIO: "leaf_bgp_disable"
+    QDRANT_URL: "http://qdrant:6333"
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+latticeMcp:
+  replicaCount: 1
+  image:
+    repository: lattice-mcp
+    tag: local
+    pullPolicy: Never
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30101
+  env:
+    MCP_AUDIT_LOG_PATH: "/data/bgp_history/mcp_audit.jsonl"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+mcpServer:
+  replicaCount: 1
+  image:
+    repository: mcp-server
+    tag: local
+    pullPolicy: Never
+  service:
+    type: NodePort
+    port: 8080
+    nodePort: 30080
+  env:
+    MCP_AUTH_TOKEN: "change_me"
+    MCP_HMAC_SECRET: "change_me_too"
+    MCP_AUDIT_PATH: "/var/audit/mcp_audit.jsonl"
+    EVPN_ANALYSIS_URL: "http://lattice:8080"
+    BGP_HISTORY_URL: "http://lattice-mcp:8080"
+    BGP_REMEDIATION_PLAN_URL: "http://lattice-mcp:8080"
+    LATTICE_MCP_AUTH_TOKEN: "local-dev-token"
+    CAPSULE_URL: "http://capsule:8080"
+    ECMP_TRACE_URL: "http://ecmp-trace:8081"
+    QDRANT_URL: "http://qdrant:6333"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+nreAgent:
+  replicaCount: 1
+  image:
+    repository: nre-agent
+    tag: local
+    pullPolicy: Never
+  service:
+    type: NodePort
+    port: 8090
+    nodePort: 30090
+  mode: bgp_diagnostics
+  intervalSeconds: 300
+  enableApi: "true"
+  apiPort: 8090
+  mcp:
+    url: http://mcp-server:8080
+  env:
+    NRE_AGENT_SCENARIO: ""
+    NRE_AGENT_INTERVAL_SECONDS: "300"
+    NRE_AGENT_APPROVAL_STATUS: ""
+    NRE_AGENT_APPROVAL_COOLDOWN_SECONDS: "300"
+    NRE_AGENT_API_HOST: "0.0.0.0"
+    NRE_AGENT_API_PORT: "8090"
+    NRE_AGENT_KAFKA_ENABLED: "true"
+    NRE_AGENT_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    NRE_AGENT_KAFKA_INCIDENT_TOPIC: "nre.incidents"
+    NRE_AGENT_KAFKA_PLAN_TOPIC: "nre.plans"
+    NRE_AGENT_RAG_ENABLED: "true"
+    NRE_AGENT_RAG_QDRANT_URL: "http://qdrant:6333"
+    NRE_AGENT_RAG_COLLECTION: "nre_docs"
+    NRE_AGENT_MCP_URL: "http://mcp-server:8080"
+  persistence:
+    mountPath: /data
+    approvalPath: /data/approvals
+    planMemoryPath: /data/plans
+    size: "1Gi"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+ecmpTrace:
+  replicaCount: 1
+  image:
+    repository: ecmp-trace
+    tag: local
+    pullPolicy: Never
+  service:
+    type: NodePort
+    port: 8081
+    nodePort: 30081
+  env:
+    TRACE_TIMEOUT_SECONDS: "5"
+    TRACE_MAX_FLOWS: "8"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+qdrant:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: qdrant/qdrant
+    tag: "v1.13.2"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 6333
+    nodePort: 30333
+  persistence:
+    enabled: true
+    size: 10Gi
+    mountPath: /qdrant/storage
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+kafka:
+  image:
+    repository: apache/kafka
+    tag: "3.7.1"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 9092
+    nodePort: 30092
+
+influxdb:
+  image:
+    repository: influxdb
+    tag: "2.7"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 8086
+    nodePort: 30086
+  adminToken: "nreadminsupersecrettoken"
+  org: "nre"
+  bucket: "nre"
+  username: "nreadmin"
+  password: "nreadminpassword"
+
+observabilityPipeline:
+  enabled: true
+  kafkaInfluxWriter:
+    replicaCount: 1
+    image:
+      repository: kafka-influx-writer
+      tag: local
+      pullPolicy: Never
+    env:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_TOPICS: "nre.plans,nre.incidents"
+      INFLUXDB_URL: "http://influxdb:8086"
+      INFLUXDB_TOKEN: "nreadminsupersecrettoken"
+      INFLUXDB_ORG: "nre"
+      INFLUXDB_BUCKET: "nre"
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "300m"
+        memory: "256Mi"
+
+  snapshotFile: /data/bgp_snapshot.json
+
+bgpHistoryPersistence:
+  enabled: true
+  size: 2Gi
+  mountPath: /data/bgp_history
+
+bgpRagVendor: ""
+
+victoriaMetrics:
+  enabled: false
+
+capsule:
+  enabled: false
+
+bgpDiagnostics:
+  enabled: true
+  fabric: prod-dc-west
+  device: leaf-01
+  snapshotFile: /data/bgp_snapshot.json
+  snapshotContent: |
+    {
+      "events": [
+        {
+          "peer": "10.0.0.12",
+          "session_state": "idle",
+          "last_error": "tcp_connect_failed",
+          "shared_dependency": "rr-01",
+          "address_family": "ipv4_unicast",
+          "root_cause_hint": "rr-01",
+          "timestamp": "2026-03-29T12:00:06Z",
+          "logs": ["tcp connect failed to route reflector rr-01"]
+        },
+        {
+          "peer": "10.0.0.13",
+          "session_state": "idle",
+          "last_error": "tcp_connect_failed",
+          "shared_dependency": "rr-01",
+          "address_family": "ipv4_unicast",
+          "root_cause_hint": "rr-01",
+          "timestamp": "2026-03-29T12:00:07Z",
+          "logs": ["tcp connect failed to route reflector rr-01"]
+        },
+        {
+          "peer": "10.0.0.11",
+          "session_state": "established",
+          "prefixes_received": 0,
+          "shared_dependency": "rr-01",
+          "address_family": "ipv4_unicast",
+          "root_cause_hint": "peer_not_advertising_or_upstream_issue",
+          "timestamp": "2026-03-29T12:00:05Z",
+          "logs": ["neighbor 10.0.0.11 established but no prefixes received"]
+        }
+      ]
+    }

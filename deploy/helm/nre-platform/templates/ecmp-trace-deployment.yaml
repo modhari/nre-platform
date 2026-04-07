@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ecmp-trace
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: {{ .Values.ecmpTrace.replicaCount }}
+  selector:
+    matchLabels:
+      app: ecmp-trace
+  template:
+    metadata:
+      labels:
+        app: ecmp-trace
+    spec:
+      containers:
+        - name: ecmp-trace
+          image: "{{ .Values.ecmpTrace.image.repository }}:{{ .Values.ecmpTrace.image.tag }}"
+          imagePullPolicy: {{ .Values.ecmpTrace.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.ecmpTrace.service.port }}
+          env:
+            - name: TRACE_TIMEOUT_SECONDS
+              value: "{{ .Values.ecmpTrace.env.TRACE_TIMEOUT_SECONDS }}"
+            - name: TRACE_MAX_FLOWS
+              value: "{{ .Values.ecmpTrace.env.TRACE_MAX_FLOWS }}"
+          resources:
+            {{- toYaml .Values.ecmpTrace.resources | nindent 12 }}

@@ -1,0 +1,8 @@
+# ── HTTP client for lattice-mcp and ecmp-trace backend calls ─────────────────
+requests==2.32.3
+
+# ── Qdrant — used by the bgp.rag_context capability ──────────────────────────
+# mcp_server calls the Qdrant HTTP API directly via urllib (no client lib
+# needed at runtime). qdrant-client is included for convenience in local
+# scripts and integration tests that run against a live Qdrant instance.
+qdrant-client==1.9.1

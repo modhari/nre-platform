@@ -1,0 +1,11 @@
+global:
+  namespace: nre-platform
+  environment: cloud
+
+lattice:
+  replicaCount: 2
+
+mcpServer:
+  replicaCount: 2
+  env:
+    MCP_AUDIT_PATH: /tmp/mcp_audit.jsonl

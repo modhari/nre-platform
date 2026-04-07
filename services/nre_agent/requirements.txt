@@ -1,0 +1,13 @@
+# ── HTTP and API ──────────────────────────────────────────────────────────────
+requests==2.31.0
+fastapi==0.115.0
+uvicorn==0.30.6
+
+# ── Kafka — event publishing ──────────────────────────────────────────────────
+kafka-python
+
+# ── Qdrant — BGP RAG context ──────────────────────────────────────────────────
+# The agent calls mcp_server bgp.rag_context which proxies to Qdrant.
+# qdrant-client is included for any future direct Qdrant calls from
+# the agent and for local scripts and integration tests.
+qdrant-client==1.9.1

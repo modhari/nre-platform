@@ -1,0 +1,20 @@
+vendors:
+  juniper:
+    extra_tools_by_scenario:
+      mac_mobility_analysis:
+        - inspect_overlay_diagnostics_support
+      duplicate_mac_detection:
+        - inspect_overlay_diagnostics_support
+
+  arista:
+    extra_tools_by_scenario:
+      dci_connectivity_analysis:
+        - inspect_evpn_route_scope
+      hierarchical_domain_scaling_analysis:
+        - inspect_evpn_route_scope
+
+  cisco:
+    extra_tools_by_scenario:
+      anycast_gateway_validation:
+        - inspect_anycast_gateway_consistency
+        - inspect_arp_suppression_state

@@ -1,0 +1,163 @@
+vendors:
+  - cisco
+  - juniper
+  - arista
+  - nokia
+  - neutral
+  - shared
+  - internal
+
+nos_families:
+  - nx_os
+  - junos
+  - eos
+  - srlinux
+  - sros
+
+source_types:
+  - vendor_whitepaper
+  - vendor_architecture_reference
+  - vendor_configuration_guide
+  - vendor_user_guide
+  - vendor_deployment_guide
+  - internal_design_doc
+  - runbook
+  - protocol_reference
+
+roles:
+  - reasoning_primary
+  - troubleshooting_reference
+  - troubleshooting_primary
+  - topology_reference
+  - config_reference
+  - path_reference
+
+domains:
+  - evpn
+  - vxlan
+  - bgp_evpn
+
+features:
+  - multi_domain
+  - mlag
+  - all_active
+  - multihoming
+  - anycast_gateway
+  - arp_suppression
+  - ndp_suppression
+  - mac_mobility
+  - mac_damping
+  - duplicate_mac_detection
+  - mac_pinning
+  - symmetric_irb
+  - irb
+  - type1
+  - type2
+  - type3
+  - type4
+  - type5
+  - esi
+  - vni
+  - vtep
+  - bum
+  - multicast
+  - vxlan
+  - evpn
+  - bgp_evpn
+  - single_pod
+  - multi_pod
+  - multi_site
+  - dci
+  - gateway
+  - hierarchical_evpn
+  - route_reflector
+  - super_spine
+  - external_connectivity
+  - packet_walkthrough
+  - verification
+  - leaf_spine
+  - l4_l7_services
+  - operations
+  - brownfield_migration
+  - control_plane
+  - data_plane
+  - routing
+  - bridging
+  - mac_vrf
+  - duplicate_mac_detection
+  - mac_pinning
+  - ndp_suppression
+  - pure_type5
+  - vxlan_stitching
+  - route_stitching
+  - overlay_ping
+  - overlay_traceroute
+  - proxy_arp
+  - proxy_ndp
+  - duplicate_mac_detection
+  - loop_detection
+  - static_mac_ip_binding
+  - service_type_vlan_aware
+  - service_type_vlan_based
+  - service_type_vlan_bundle
+  - fault_isolation
+  - case_studies
+  - deployment
+  - designated_forwarder
+  - df
+  - east_west
+  - encapsulation
+  - encapsulation_vxlan
+  - ethernet_segment
+  - failover
+  - fault_containment
+  - flood_list_scaling
+  - ingress_replication
+  - layer3_services
+  - leaf
+  - loop_free_l2
+  - next_hop_rewrite
+  - north_south
+  - packet_capture
+  - pod
+  - route_distinguisher
+  - service_node
+  - single_homed
+  - spine
+  - state_reduction
+  - type1_scope
+  - type3_scope
+  - type4_scope
+  - vrf_target
+  - vtep_source_interface
+  - vxlan_to_mpls
+  - vxlan_to_vxlan
+
+scenarios:
+  - evpn_peer_analysis
+  - mac_vrf_consistency
+  - vni_intent_vs_oper_state
+  - bum_replication_analysis
+  - arp_suppression_validation
+  - anycast_gateway_validation
+  - overlay_underlay_path_reasoning
+  - route_target_rd_analysis
+  - mac_mobility_analysis
+  - duplicate_mac_detection
+  - symmetric_irb_validation
+  - multihoming_design_selection
+  - failover_analysis
+  - vtep_reachability_analysis
+  - type2_type5_forwarding_analysis
+  - gateway_forwarding_analysis
+  - dci_connectivity_analysis
+  - hierarchical_domain_scaling_analysis
+
+capabilities:
+  - bgp_evpn_peer_config
+  - bgp_evpn_peer_state
+  - evpn_mac_vrf_config
+  - evpn_mac_vrf_state
+  - evpn_vtep_config
+  - vxlan_vni_config
+  - vxlan_vni_oper_state

@@ -1,0 +1,289 @@
+- document_id: cisco_vxlan_evpn_book
+  filename: VXLAN_EVPN_CISCO.pdf
+  vendor: cisco
+  nos_family: nx_os
+  source_type: vendor_architecture_reference
+  priority: high
+  role:
+    - reasoning_primary
+    - topology_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: medium
+    model_paths: low
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - vxlan
+    scenarios:
+      - evpn_peer_analysis
+      - mac_vrf_consistency
+      - vni_intent_vs_oper_state
+      - bum_replication_analysis
+    capabilities:
+      - bgp_evpn_peer_config
+      - bgp_evpn_peer_state
+      - evpn_mac_vrf_config
+      - evpn_mac_vrf_state
+      - evpn_vtep_config
+      - vxlan_vni_config
+      - vxlan_vni_oper_state
+
+- document_id: cisco_mpbgp_evpn_vxlan_design
+  filename: VXLAN_Network_with_MP-BGP_EVPN_Control_Plane.pdf
+  vendor: cisco
+  nos_family: nx_os
+  source_type: vendor_design_configuration_guide
+  priority: high
+  role:
+    - reasoning_primary
+    - troubleshooting_reference
+    - config_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: high
+    model_paths: medium
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - vxlan
+      - bgp_evpn
+    scenarios:
+      - evpn_peer_analysis
+      - mac_vrf_consistency
+      - vni_intent_vs_oper_state
+      - bum_replication_analysis
+      - arp_suppression_validation
+      - anycast_gateway_validation
+      - overlay_underlay_path_reasoning
+      - route_target_rd_analysis
+      - vtep_peer_validation
+    capabilities:
+      - bgp_evpn_peer_config
+      - bgp_evpn_peer_state
+      - evpn_mac_vrf_config
+      - evpn_mac_vrf_state
+      - evpn_vtep_config
+      - vxlan_vni_config
+      - vxlan_vni_oper_state
+
+- document_id: juniper_evpn_vxlan_guide
+  filename: juniper_evpn_vxlan_guide.pdf
+  vendor: juniper
+  nos_family: junos
+  source_type: vendor_architecture_configuration_guide
+  priority: high
+  role:
+    - reasoning_primary
+    - troubleshooting_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: high
+    model_paths: medium
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - vxlan
+      - bgp_evpn
+    scenarios:
+      - evpn_peer_analysis
+      - mac_vrf_consistency
+      - vni_intent_vs_oper_state
+      - bum_replication_analysis
+      - arp_suppression_validation
+      - anycast_gateway_validation
+      - overlay_underlay_path_reasoning
+      - route_target_rd_analysis
+      - mac_mobility_analysis
+      - duplicate_mac_detection
+      - symmetric_irb_validation
+    capabilities:
+      - bgp_evpn_peer_config
+      - bgp_evpn_peer_state
+      - evpn_mac_vrf_config
+      - evpn_mac_vrf_state
+      - evpn_vtep_config
+      - vxlan_vni_config
+      - vxlan_vni_oper_state
+
+- document_id: juniper_evpn_vxlan_dc_deployment
+  filename: TW_DCDeployment_v2_Juniper.pdf
+  vendor: juniper
+  nos_family: junos
+  source_type: vendor_deployment_guide
+  priority: high
+  role:
+    - reasoning_primary
+    - troubleshooting_primary
+    - topology_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: high
+    model_paths: low
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - vxlan
+      - bgp_evpn
+    scenarios:
+      - overlay_underlay_path_reasoning
+      - vxlan_packet_flow_analysis
+      - leaf_spine_topology_reasoning
+      - dci_connectivity_analysis
+      - bum_replication_analysis
+      - multicast_behavior_analysis
+      - vtep_reachability_analysis
+      - symmetric_irb_validation
+    capabilities:
+      - bgp_evpn_peer_state
+      - evpn_mac_vrf_state
+      - vxlan_vni_oper_state
+
+- document_id: arista_evpn_multihoming_wp
+  filename: Arista-EVPN-DC-Multihoming-for-Resiliency-WP.pdf
+  document_title: The EVPN Data Center Multihoming models with EVPN
+  vendor: arista
+  nos_family: eos
+  platform_family:
+    - arista_switching
+  source_type: vendor_whitepaper
+  source_format: pdf
+  priority: high
+  role:
+    - reasoning_primary
+    - topology_reference
+    - troubleshooting_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: medium
+    model_paths: low
+    operational_behavior: high
+  domain: evpn_vxlan
+  authoritative_for:
+    - design_tradeoff_analysis
+    - multihoming_behavior
+  advisory_for:
+    - remediation_suggestions
+    - architecture_selection
+  not_authoritative_for:
+    - exact_yang_paths
+    - exact_gnmi_paths
+    - automated_write_claims
+  tags:
+    domain:
+      - evpn
+      - vxlan
+      - bgp_evpn
+    features:
+      - multihoming
+      - mlag
+      - all_active
+      - anycast_gateway
+      - type2
+      - type3
+      - type4
+      - type5
+      - bum
+      - multicast
+    scenarios:
+      - evpn_peer_analysis
+      - multihoming_design_selection
+      - bum_replication_analysis
+      - vtep_reachability_analysis
+      - type2_type5_forwarding_analysis
+      - gateway_forwarding_analysis
+    capabilities:
+      - bgp_evpn_peer_config
+      - bgp_evpn_peer_state
+      - evpn_vtep_config
+      - vxlan_vni_oper_state
+    topology_roles:
+      - leaf
+      - spine
+      - border_leaf
+  retrieval_hints:
+    prefer_for:
+      - multihoming_tradeoffs
+      - failover_behavior
+      - mlag_vs_all_active_reasoning
+    avoid_for:
+      - path_level_extraction
+  lifecycle:
+    status: active
+    version_note: initial_ingest
+    last_reviewed: 2026_04_04
+
+- document_id: arista_eos_evpn_vxlan_manual
+  filename: Arista-EOS-User-Manual.pdf
+  vendor: arista
+  nos_family: eos
+  source_type: vendor_user_guide
+  priority: high
+  role:
+    - reasoning_primary
+    - config_reference
+    - troubleshooting_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: high
+    model_paths: medium
+    operational_behavior: high
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - vxlan
+      - bgp_evpn
+    scenarios:
+      - vtep_reachability_analysis
+      - arp_suppression_validation
+      - mac_mobility_analysis
+      - failover_analysis
+      - type2_type5_forwarding_analysis
+    capabilities:
+      - bgp_evpn_peer_config
+      - bgp_evpn_peer_state
+      - evpn_vtep_config
+      - vxlan_vni_config
+      - vxlan_vni_oper_state
+
+- document_id: arista_evpn_gateway_multidomain_dci_wp
+  filename: Arista-EVPN-Data-Center-EVPN-Gateway.pdf
+  vendor: arista
+  nos_family: eos
+  source_type: vendor_whitepaper
+  priority: high
+  role:
+    - reasoning_primary
+    - topology_reference
+    - troubleshooting_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: medium
+    model_paths: low
+    operational_behavior: high
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - vxlan
+      - bgp_evpn
+    scenarios:
+      - dci_connectivity_analysis
+      - hierarchical_domain_scaling_analysis
+      - gateway_forwarding_analysis
+      - bum_replication_analysis
+    capabilities:
+      - bgp_evpn_peer_state
+      - evpn_mac_vrf_state
+      - vxlan_vni_oper_state

@@ -1,0 +1,117 @@
+chunk_schema_version: v1
+
+fields:
+
+  chunk_id:
+    type: string
+    required: true
+
+  document_id:
+    type: string
+    required: true
+
+  domain:
+    type: string
+    required: true
+
+  vendor:
+    type: string
+    required: true
+
+  nos_family:
+    type: string
+    required: true
+
+  source_type:
+    type: string
+    required: true
+
+  priority:
+    type: string
+    enum: [low, medium, high]
+
+  role:
+    type: list
+    items:
+      enum:
+        - reasoning_primary
+        - troubleshooting_primary
+        - troubleshooting_reference
+        - topology_reference
+        - config_reference
+
+  chunk_type:
+    type: string
+    enum:
+      - section_text
+      - config_block
+      - command_reference
+      - explanation
+      - table
+      - diagram_text
+
+  section_title:
+    type: string
+
+  subsection_title:
+    type: string
+
+  page_start:
+    type: integer
+
+  page_end:
+    type: integer
+
+  text:
+    type: string
+    required: true
+
+  tags:
+    type: object
+    properties:
+      features:
+        type: list
+      scenarios:
+        type: list
+      capabilities:
+        type: list
+      route_types:
+        type: list
+      topology_roles:
+        type: list
+
+  retrieval_weight:
+    type: object
+    properties:
+      semantic:
+        type: float
+      keyword:
+        type: float
+      trust:
+        type: float
+      priority:
+        type: float
+
+  evidence_quality:
+    type: object
+    properties:
+      packet_level:
+        type: boolean
+      config_level:
+        type: boolean
+      design_level:
+        type: boolean
+      troubleshooting_level:
+        type: boolean
+
+  use_constraints:
+    type: object
+    properties:
+      safe_for_explanation:
+        type: boolean
+      safe_for_diagnosis:
+        type: boolean
+      safe_for_remediation:
+        type: boolean
+      safe_for_capability_claim:
+        type: boolean

@@ -1,0 +1,83 @@
+scenarios:
+  mac_mobility_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_mac_mobility_state
+      - inspect_duplicate_mac_state
+
+  duplicate_mac_detection:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_duplicate_mac_state
+
+  evpn_peer_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+
+  mac_vrf_consistency:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_mac_ip_binding_state
+
+  arp_suppression_validation:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_arp_suppression_state
+      - inspect_mac_ip_binding_state
+
+  anycast_gateway_validation:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_anycast_gateway_consistency
+      - inspect_arp_suppression_state
+
+  symmetric_irb_validation:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_anycast_gateway_consistency
+
+  vtep_reachability_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_vtep_reachability
+
+  type2_type5_forwarding_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_type2_type5_route_preference
+
+  dci_connectivity_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_dci_route_propagation
+      - inspect_gateway_nexthop_behavior
+
+  gateway_forwarding_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_gateway_nexthop_behavior
+
+  hierarchical_domain_scaling_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_evpn_route_scope
+      - inspect_dci_route_propagation
+
+  multihoming_design_selection:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_multihoming_model
+      - inspect_ethernet_segment_state

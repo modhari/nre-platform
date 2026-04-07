@@ -1,0 +1,18 @@
+### LICENSE  MIT
+Use the same MIT text as before.
+
+### .gitignore
+```text
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+dist
+build
+*.egg-info
+.DS_Store
+.env
+.idea
+.vscode

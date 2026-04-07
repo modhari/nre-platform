@@ -1,0 +1,23 @@
+- scenario: evpn_peer_analysis
+  description: Analyze EVPN BGP peer health and consistency
+
+- scenario: mac_vrf_consistency
+  description: Validate MAC VRF configuration and state consistency
+
+- scenario: vni_intent_vs_oper_state
+  description: Compare intended VNI configuration with operational state
+
+- scenario: bum_replication_analysis
+  description: Analyze BUM traffic handling and replication mode
+
+- scenario: arp_suppression_validation
+  description: Validate ARP suppression behavior and failure conditions
+
+- scenario: anycast_gateway_validation
+  description: Validate distributed anycast gateway behavior
+
+- scenario: overlay_underlay_path_reasoning
+  description: Relate overlay symptoms to underlay forwarding and reachability
+
+- scenario: brownfield_migration_risk
+  description: Analyze migration risks when integrating VXLAN EVPN into existing environments

@@ -1,0 +1,224 @@
+{
+  "cases": [
+    {
+      "name": "correlated_rr_failure",
+      "request": {
+        "fabric": "prod-dc-west",
+        "device": "leaf-01",
+        "snapshot": {
+          "correlation_window_seconds": 180,
+          "neighbors": [
+            {
+              "peer": "10.0.0.11",
+              "session_state": "Established",
+              "prefixes_received": 0,
+              "shared_dependency": "rr-01",
+              "last_event_at": "2026-03-29T12:00:05Z"
+            },
+            {
+              "peer": "10.0.0.12",
+              "session_state": "Idle",
+              "shared_dependency": "rr-01",
+              "last_error": "tcp_connect_failed",
+              "last_event_at": "2026-03-29T12:00:06Z"
+            },
+            {
+              "peer": "10.0.0.13",
+              "session_state": "Idle",
+              "shared_dependency": "rr-01",
+              "last_error": "tcp_connect_failed",
+              "last_event_at": "2026-03-29T12:00:07Z"
+            }
+          ],
+          "adj_rib_in": [
+            {
+              "prefix": "192.0.2.0/24",
+              "peer": "10.0.0.11",
+              "reason": "received_pre_policy",
+              "shared_dependency": "policy-domain-a"
+            }
+          ],
+          "loc_rib": [],
+          "adj_rib_out": [],
+          "events": [
+            {
+              "event_type": "session_flap",
+              "peer": "10.0.0.12",
+              "shared_dependency": "rr-01",
+              "occurred_at": "2026-03-29T12:00:06Z",
+              "message": "peer flap detected"
+            }
+          ],
+          "logs": [
+            {
+              "occurred_at": "2026-03-29T12:00:05Z",
+              "source": "bgp",
+              "peer": "10.0.0.11",
+              "shared_dependency": "rr-01",
+              "message": "neighbor 10.0.0.11 established but no prefixes received"
+            },
+            {
+              "occurred_at": "2026-03-29T12:00:06Z",
+              "source": "tcp",
+              "peer": "10.0.0.12",
+              "shared_dependency": "rr-01",
+              "message": "tcp connect failed to route reflector rr-01"
+            },
+            {
+              "occurred_at": "2026-03-29T12:00:07Z",
+              "source": "tcp",
+              "peer": "10.0.0.13",
+              "shared_dependency": "rr-01",
+              "message": "tcp connect failed to route reflector rr-01"
+            },
+            {
+              "occurred_at": "2026-03-29T12:00:08Z",
+              "source": "policy",
+              "prefix": "192.0.2.0/24",
+              "shared_dependency": "policy-domain-a",
+              "message": "prefix 192.0.2.0/24 denied by inbound policy"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "has_grouped_alert": true,
+        "top_finding_type": "session_down",
+        "required_findings": [
+          "session_down",
+          "peer_not_advertising",
+          "inbound_policy_drop",
+          "session_unstable"
+        ]
+      }
+    },
+    {
+      "name": "single_peer_down",
+      "request": {
+        "fabric": "prod-dc-west",
+        "device": "leaf-02",
+        "snapshot": {
+          "correlation_window_seconds": 180,
+          "neighbors": [
+            {
+              "peer": "10.0.1.21",
+              "session_state": "Idle",
+              "last_error": "tcp_connect_failed",
+              "last_event_at": "2026-03-29T12:10:00Z"
+            }
+          ],
+          "adj_rib_in": [],
+          "loc_rib": [],
+          "adj_rib_out": [],
+          "events": [],
+          "logs": [
+            {
+              "occurred_at": "2026-03-29T12:10:00Z",
+              "source": "tcp",
+              "peer": "10.0.1.21",
+              "message": "tcp connect failed to peer 10.0.1.21"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "has_grouped_alert": false,
+        "top_finding_type": "session_down",
+        "required_findings": [
+          "session_down"
+        ]
+      }
+    },
+    {
+      "name": "inbound_policy_drop_only",
+      "request": {
+        "fabric": "prod-dc-west",
+        "device": "leaf-03",
+        "snapshot": {
+          "correlation_window_seconds": 180,
+          "neighbors": [
+            {
+              "peer": "10.0.2.31",
+              "session_state": "Established",
+              "prefixes_received": 5,
+              "last_event_at": "2026-03-29T12:20:00Z"
+            }
+          ],
+          "adj_rib_in": [
+            {
+              "prefix": "198.51.100.0/24",
+              "peer": "10.0.2.31",
+              "reason": "received_pre_policy",
+              "shared_dependency": "policy-domain-b"
+            }
+          ],
+          "loc_rib": [],
+          "adj_rib_out": [],
+          "events": [],
+          "logs": [
+            {
+              "occurred_at": "2026-03-29T12:20:01Z",
+              "source": "policy",
+              "prefix": "198.51.100.0/24",
+              "shared_dependency": "policy-domain-b",
+              "message": "prefix 198.51.100.0/24 denied by inbound policy"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "has_grouped_alert": false,
+        "top_finding_type": "inbound_policy_drop",
+        "required_findings": [
+          "inbound_policy_drop"
+        ]
+      }
+    },
+    {
+      "name": "outbound_policy_drop_only",
+      "request": {
+        "fabric": "prod-dc-west",
+        "device": "leaf-04",
+        "snapshot": {
+          "correlation_window_seconds": 180,
+          "neighbors": [
+            {
+              "peer": "10.0.3.41",
+              "session_state": "Established",
+              "prefixes_received": 3,
+              "last_event_at": "2026-03-29T12:30:00Z"
+            }
+          ],
+          "adj_rib_in": [],
+          "loc_rib": [
+            {
+              "prefix": "203.0.113.0/24",
+              "peer": "10.0.3.41",
+              "reason": "accepted",
+              "best": true,
+              "shared_dependency": "export-policy-a"
+            }
+          ],
+          "adj_rib_out": [],
+          "events": [],
+          "logs": [
+            {
+              "occurred_at": "2026-03-29T12:30:01Z",
+              "source": "policy",
+              "prefix": "203.0.113.0/24",
+              "shared_dependency": "export-policy-a",
+              "message": "prefix 203.0.113.0/24 filtered by outbound policy"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "has_grouped_alert": false,
+        "top_finding_type": "outbound_policy_drop",
+        "required_findings": [
+          "outbound_policy_drop"
+        ]
+      }
+    }
+  ]
+}

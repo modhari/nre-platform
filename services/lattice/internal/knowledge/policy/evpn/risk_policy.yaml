@@ -1,0 +1,22 @@
+risk:
+  high:
+    scenarios:
+      - dci_connectivity_analysis
+      - gateway_forwarding_analysis
+      - hierarchical_domain_scaling_analysis
+      - multihoming_design_selection
+
+  medium:
+    scenarios:
+      - anycast_gateway_validation
+      - arp_suppression_validation
+      - type2_type5_forwarding_analysis
+      - symmetric_irb_validation
+      - vtep_reachability_analysis
+      - mac_mobility_analysis
+      - duplicate_mac_detection
+      - evpn_peer_analysis
+      - mac_vrf_consistency
+
+  low:
+    scenarios: []

@@ -154,3 +154,25 @@ smoke:
 ## help: Print this help.
 help:
 	@grep -E '^##' $(MAKEFILE_LIST) | sed 's/## /  /'
+
+## post-install: Run after 'make up' — sets up InfluxDB and patches nre-agent NodePort.
+post-install:
+	@echo "[post-install] waiting for influxdb to be ready..."
+	@kubectl wait --for=condition=ready pod -l app=influxdb -n $(NAMESPACE) --timeout=120s
+	@echo "[post-install] setting up InfluxDB org/bucket/token..."
+	@kubectl exec -n $(NAMESPACE) deploy/influxdb -- influx setup \
+		--username nreadmin \
+		--password nreadminpassword \
+		--org nre \
+		--bucket nre \
+		--token nreadminsupersecrettoken \
+		--force 2>&1 | grep -v "^$$" || true
+	@echo "[post-install] patching nre-agent NodePort to 30090..."
+	@kubectl patch svc nre-agent -n $(NAMESPACE) \
+		-p '{"spec":{"type":"NodePort","ports":[{"port":8090,"targetPort":8090,"nodePort":30090}]}}' \
+		2>/dev/null || true
+	@kubectl rollout restart deployment/kafka-influx-writer -n $(NAMESPACE)
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "  post-install complete. Run 'make smoke' to verify."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

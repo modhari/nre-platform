@@ -3,12 +3,16 @@ kind: Service
 metadata:
   name: ecmp-trace
   namespace: {{ .Values.global.namespace }}
+  labels:
+    app: ecmp-trace
 spec:
   selector:
     app: ecmp-trace
+  type: {{ .Values.ecmpTrace.service.type }}
   ports:
     - name: http
-      protocol: TCP
       port: {{ .Values.ecmpTrace.service.port }}
       targetPort: {{ .Values.ecmpTrace.service.port }}
-  type: ClusterIP
+      {{- if eq .Values.ecmpTrace.service.type "NodePort" }}
+      nodePort: {{ .Values.ecmpTrace.service.nodePort }}
+      {{- end }}

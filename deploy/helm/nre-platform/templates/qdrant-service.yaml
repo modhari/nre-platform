@@ -1,14 +1,18 @@
-{{- if .Values.qdrant.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: qdrant
   namespace: {{ .Values.global.namespace }}
+  labels:
+    app: qdrant
 spec:
   selector:
     app: qdrant
+  type: {{ .Values.qdrant.service.type }}
   ports:
-    - protocol: TCP
+    - name: http
       port: {{ .Values.qdrant.service.port }}
       targetPort: {{ .Values.qdrant.service.port }}
-{{- end }}
+      {{- if eq .Values.qdrant.service.type "NodePort" }}
+      nodePort: {{ .Values.qdrant.service.nodePort }}
+      {{- end }}

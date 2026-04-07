@@ -3,10 +3,16 @@ kind: Service
 metadata:
   name: mcp-server
   namespace: {{ .Values.global.namespace }}
+  labels:
+    app: mcp-server
 spec:
   selector:
     app: mcp-server
+  type: {{ .Values.mcpServer.service.type }}
   ports:
-    - protocol: TCP
+    - name: http
       port: {{ .Values.mcpServer.service.port }}
       targetPort: {{ .Values.mcpServer.service.port }}
+      {{- if eq .Values.mcpServer.service.type "NodePort" }}
+      nodePort: 30080
+      {{- end }}

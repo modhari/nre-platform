@@ -3,10 +3,35 @@ kind: Service
 metadata:
   name: lattice
   namespace: {{ .Values.global.namespace }}
+  labels:
+    app: lattice
 spec:
   selector:
     app: lattice
+  type: {{ .Values.lattice.service.type }}
   ports:
-    - protocol: TCP
+    - name: http
       port: {{ .Values.lattice.service.port }}
       targetPort: {{ .Values.lattice.service.port }}
+      {{- if eq .Values.lattice.service.type "NodePort" }}
+      nodePort: {{ .Values.lattice.service.nodePort }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lattice-mcp
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: lattice-mcp
+spec:
+  selector:
+    app: lattice-mcp
+  type: {{ .Values.latticeMcp.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.latticeMcp.service.port }}
+      targetPort: {{ .Values.latticeMcp.service.port }}
+      {{- if eq .Values.latticeMcp.service.type "NodePort" }}
+      nodePort: {{ .Values.latticeMcp.service.nodePort }}
+      {{- end }}

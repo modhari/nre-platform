@@ -1,0 +1,100 @@
+- document_id: arista_bgp_troubleshooting
+  filename: arista_bgp_troubleshooting.txt
+  vendor: arista
+  nos_family: eos
+  source_type: vendor_troubleshooting_guide
+  priority: high
+  role:
+    - troubleshooting_primary
+    - reasoning_primary
+  domain: bgp
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    model_paths: medium
+  tags:
+    domain:
+      - bgp
+    scenarios:
+      - bgp_session_down
+      - bgp_session_idle
+      - bgp_tcp_connect_failed
+      - bgp_received_route_zero
+      - bgp_peer_not_advertising
+      - bgp_soft_reset_needed
+      - bgp_route_reflector_failure
+
+- document_id: juniper_bgp_troubleshooting
+  filename: juniper_bgp_troubleshooting.txt
+  vendor: juniper
+  nos_family: junos
+  source_type: vendor_troubleshooting_guide
+  priority: high
+  role:
+    - troubleshooting_primary
+    - reasoning_primary
+  domain: bgp
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    model_paths: medium
+  tags:
+    domain:
+      - bgp
+    scenarios:
+      - bgp_session_down
+      - bgp_session_idle
+      - bgp_tcp_connect_failed
+      - bgp_received_route_zero
+      - bgp_peer_not_advertising
+      - bgp_soft_reset_needed
+      - bgp_route_reflector_failure
+
+- document_id: cisco_bgp_troubleshooting
+  filename: cisco_bgp_troubleshooting.txt
+  vendor: cisco
+  nos_family: nx_os
+  source_type: vendor_troubleshooting_guide
+  priority: high
+  role:
+    - troubleshooting_primary
+    - reasoning_primary
+  domain: bgp
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    model_paths: medium
+  tags:
+    domain:
+      - bgp
+    scenarios:
+      - bgp_session_down
+      - bgp_session_idle
+      - bgp_tcp_connect_failed
+      - bgp_received_route_zero
+      - bgp_peer_not_advertising
+      - bgp_soft_reset_needed
+      - bgp_route_reflector_failure
+
+- document_id: bgp_protocol_reference
+  filename: bgp_protocol_reference.txt
+  vendor: neutral
+  nos_family: eos
+  source_type: protocol_reference
+  priority: medium
+  role:
+    - troubleshooting_reference
+    - topology_reference
+  domain: bgp
+  trust_level:
+    vendor_design_guidance: low
+    protocol_background: high
+    model_paths: low
+  tags:
+    domain:
+      - bgp
+    scenarios:
+      - bgp_session_down
+      - bgp_correlated_failure
+      - bgp_route_reflector_failure
+      - bgp_prefix_withdrawn

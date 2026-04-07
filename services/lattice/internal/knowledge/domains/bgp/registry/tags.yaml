@@ -1,0 +1,97 @@
+vendors:
+  - arista
+  - juniper
+  - cisco
+  - nokia
+  - neutral
+
+nos_families:
+  - eos
+  - junos
+  - nx_os
+  - srlinux
+
+source_types:
+  - vendor_configuration_guide
+  - vendor_troubleshooting_guide
+  - vendor_architecture_reference
+  - vendor_user_guide
+  - protocol_reference
+  - internal_runbook
+
+roles:
+  - reasoning_primary
+  - troubleshooting_primary
+  - troubleshooting_reference
+  - config_reference
+  - topology_reference
+
+domains:
+  - bgp
+
+features:
+  - bgp_session
+  - bgp_neighbor
+  - bgp_route_reflector
+  - bgp_peer_group
+  - bgp_prefix_limit
+  - bgp_soft_reset
+  - bgp_hard_reset
+  - bgp_graceful_restart
+  - bgp_bfd
+  - bgp_authentication
+  - bgp_update_source
+  - bgp_ebgp
+  - bgp_ibgp
+  - bgp_multipath
+  - bgp_route_policy
+  - bgp_communities
+  - bgp_local_pref
+  - bgp_med
+  - bgp_as_path
+  - bgp_next_hop
+  - bgp_ipv4_unicast
+  - bgp_ipv6_unicast
+  - bgp_evpn
+  - bgp_route_dampening
+  - bgp_addpath
+  - bgp_prefix_advertisement
+  - route_reflector_cluster
+  - peer_session_templates
+  - peer_policy_templates
+  - tcp_transport
+  - ttl_security
+
+scenarios:
+  - bgp_session_down
+  - bgp_session_idle
+  - bgp_session_active
+  - bgp_peer_not_advertising
+  - bgp_received_route_zero
+  - bgp_prefix_limit_exceeded
+  - bgp_route_reflector_failure
+  - bgp_correlated_failure
+  - bgp_soft_reset_needed
+  - bgp_hard_reset_needed
+  - bgp_tcp_connect_failed
+  - bgp_auth_failure
+  - bgp_hold_timer_expired
+  - bgp_notification_received
+  - bgp_prefix_withdrawn
+  - bgp_next_hop_unreachable
+
+capabilities:
+  - bgp_neighbor_state
+  - bgp_neighbor_config
+  - bgp_route_table
+  - bgp_prefix_count
+  - bgp_session_reset
+  - bgp_soft_clear
+  - bgp_route_refresh
+  - bgp_peer_group_config
+  - bgp_policy_config
+  - bgp_summary_view
+  - bgp_advertised_routes
+  - bgp_received_routes
+  - bgp_dampened_routes
+  - bgp_pending_prefixes

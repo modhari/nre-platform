@@ -165,7 +165,7 @@ def _scroll_by_filter(
     if anomaly_type:
         # anomaly_type is stored as an array tag on BGP knowledge chunks
         must.append({
-            "key":   "tags.anomaly_types[]",
+            "key":   "tags.scenarios[]",
             "match": {"value": anomaly_type},
         })
 

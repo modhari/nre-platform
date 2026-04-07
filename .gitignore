@@ -1,0 +1,39 @@
+# ── Generated data — never commit ────────────────────────────────────────────
+services/lattice/data/
+services/lattice/path/
+
+# ── Python virtual environments ───────────────────────────────────────────────
+**/venv/
+**/.venv/
+**/bin/activate
+**/bin/pip*
+**/bin/python*
+**/lib/python*/
+**/pyvenv.cfg
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/*.egg-info/
+
+# ── PDFs — large, binary, already in individual repos ────────────────────────
+**/*.pdf
+
+# ── Embedded git repositories inside services/ ────────────────────────────────
+services/lattice/data/repos/
+
+# ── macOS metadata ────────────────────────────────────────────────────────────
+.DS_Store
+._*
+**/.DS_Store
+**/._*
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+dist/
+build/
+*.so
+*.dylib
+
+# ── Kubernetes / local state ──────────────────────────────────────────────────
+cluster-state-backup.yaml

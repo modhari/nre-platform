@@ -185,6 +185,20 @@ post-install:
 	@echo "  post-install complete. Run 'make smoke' to verify."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+## ingest: Ingest BGP knowledge chunks into Qdrant (runs locally against the kind cluster).
+ingest:
+	@echo "[ingest] creating Python venv for ingest dependencies..."
+	@python3 -m venv /tmp/nre-ingest-venv
+	@/tmp/nre-ingest-venv/bin/pip install --quiet --upgrade pip
+	@/tmp/nre-ingest-venv/bin/pip install --quiet sentence-transformers qdrant-client pyyaml
+	@echo "[ingest] running BGP knowledge ingest against Qdrant at localhost:6333..."
+	@cd services/lattice && QDRANT_URL=http://localhost:6333 \
+		/tmp/nre-ingest-venv/bin/python -m internal.knowledge.ingest.ingest_bgp
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "  BGP knowledge ingested. RAG context is now active."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
 ## push: Tag and push all locally built images to ghcr.io/modhari/
 REGISTRY := ghcr.io/modhari
 

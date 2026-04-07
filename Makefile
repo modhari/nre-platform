@@ -144,10 +144,12 @@ endif
 smoke:
 	@echo ""
 	@echo "── smoke test ─────────────────────────────────────"
-	@curl -sf http://localhost:8081/ -o /dev/null && echo "  ecmp-trace   OK" || echo "  ecmp-trace   FAIL"
-	@curl -sf http://localhost:6333/ -o /dev/null && echo "  qdrant       OK" || echo "  qdrant       FAIL"
-	@curl -sf http://localhost:8086/ping -o /dev/null && echo "  influxdb     OK" || echo "  influxdb     FAIL"
+	@curl -sf http://localhost:8081/          -o /dev/null && echo "  ecmp-trace   OK" || echo "  ecmp-trace   FAIL"
+	@curl -sf http://localhost:6333/          -o /dev/null && echo "  qdrant       OK" || echo "  qdrant       FAIL"
+	@curl -sf http://localhost:8086/ping      -o /dev/null && echo "  influxdb     OK" || echo "  influxdb     FAIL"
 	@curl -sf http://localhost:8101/health/ready -o /dev/null && echo "  lattice-mcp  OK" || echo "  lattice-mcp  FAIL"
+	@curl -sf http://localhost:8100/          -o /dev/null && echo "  lattice      OK" || echo "  lattice      FAIL"
+	@curl -sf http://localhost:8090/approvals -o /dev/null && echo "  nre-agent    OK" || echo "  nre-agent    FAIL"
 	@echo "───────────────────────────────────────────────────"
 	@echo ""
 
@@ -155,10 +157,11 @@ smoke:
 help:
 	@grep -E '^##' $(MAKEFILE_LIST) | sed 's/## /  /'
 
-## post-install: Run after 'make up' — sets up InfluxDB and patches nre-agent NodePort.
+## post-install: Run once after 'make up' — sets up InfluxDB, patches NodePort services, restarts writers.
 post-install:
-	@echo "[post-install] waiting for influxdb to be ready..."
-	@kubectl wait --for=condition=ready pod -l app=influxdb -n $(NAMESPACE) --timeout=120s
+	@echo "[post-install] waiting for all pods to be ready..."
+	@kubectl wait --for=condition=ready pod -l app=influxdb -n $(NAMESPACE) --timeout=180s
+	@kubectl wait --for=condition=ready pod -l app=kafka    -n $(NAMESPACE) --timeout=180s
 	@echo "[post-install] setting up InfluxDB org/bucket/token..."
 	@kubectl exec -n $(NAMESPACE) deploy/influxdb -- influx setup \
 		--username nreadmin \
@@ -167,11 +170,16 @@ post-install:
 		--bucket nre \
 		--token nreadminsupersecrettoken \
 		--force 2>&1 | grep -v "^$$" || true
-	@echo "[post-install] patching nre-agent NodePort to 30090..."
-	@kubectl patch svc nre-agent -n $(NAMESPACE) \
-		-p '{"spec":{"type":"NodePort","ports":[{"port":8090,"targetPort":8090,"nodePort":30090}]}}' \
-		2>/dev/null || true
+	@echo "[post-install] patching services to NodePort..."
+	@kubectl patch svc nre-agent   -n $(NAMESPACE) -p '{"spec":{"type":"NodePort","ports":[{"port":8090,"targetPort":8090,"nodePort":30090}]}}' 2>/dev/null || true
+	@kubectl patch svc ecmp-trace  -n $(NAMESPACE) -p '{"spec":{"type":"NodePort","ports":[{"port":8081,"targetPort":8081,"nodePort":30081}]}}' 2>/dev/null || true
+	@kubectl patch svc lattice     -n $(NAMESPACE) -p '{"spec":{"type":"NodePort","ports":[{"port":8080,"targetPort":8080,"nodePort":30100}]}}' 2>/dev/null || true
+	@kubectl patch svc mcp-server  -n $(NAMESPACE) -p '{"spec":{"type":"NodePort","ports":[{"port":8080,"targetPort":8080,"nodePort":30080}]}}' 2>/dev/null || true
+	@kubectl patch svc qdrant      -n $(NAMESPACE) -p '{"spec":{"type":"NodePort","ports":[{"port":6333,"targetPort":6333,"nodePort":30333}]}}' 2>/dev/null || true
+	@kubectl patch svc lattice-mcp -n $(NAMESPACE) -p '{"spec":{"type":"NodePort","ports":[{"port":8080,"targetPort":8080,"nodePort":30101}]}}' 2>/dev/null || true
+	@echo "[post-install] restarting kafka-influx-writer..."
 	@kubectl rollout restart deployment/kafka-influx-writer -n $(NAMESPACE)
+	@kubectl rollout status  deployment/kafka-influx-writer -n $(NAMESPACE) --timeout=60s
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "  post-install complete. Run 'make smoke' to verify."

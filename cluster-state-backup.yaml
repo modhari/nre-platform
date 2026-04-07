@@ -1,0 +1,274 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: ecmp-trace
+    namespace: nre-platform
+    resourceVersion: "1069"
+    uid: f58c322d-0374-4727-b5f9-97cb77f31005
+  spec:
+    clusterIP: 10.96.185.9
+    clusterIPs:
+    - 10.96.185.9
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: http
+      nodePort: 30081
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    selector:
+      app: ecmp-trace
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app: influxdb
+      app.kubernetes.io/managed-by: Helm
+    name: influxdb
+    namespace: nre-platform
+    resourceVersion: "510"
+    uid: 338d8815-12fa-4b2d-a952-19a3e92d49a7
+  spec:
+    clusterIP: 10.96.48.116
+    clusterIPs:
+    - 10.96.48.116
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: http
+      nodePort: 30086
+      port: 8086
+      protocol: TCP
+      targetPort: 8086
+    selector:
+      app: influxdb
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app: kafka
+      app.kubernetes.io/managed-by: Helm
+    name: kafka
+    namespace: nre-platform
+    resourceVersion: "501"
+    uid: 6b750c03-9c09-4ca8-bb4d-f76d77850ba8
+  spec:
+    clusterIP: 10.96.63.139
+    clusterIPs:
+    - 10.96.63.139
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - name: plaintext
+      nodePort: 30092
+      port: 9092
+      protocol: TCP
+      targetPort: 9092
+    selector:
+      app: kafka
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: lattice
+    namespace: nre-platform
+    resourceVersion: "1071"
+    uid: eacce522-67fb-4734-94f1-fcd3424c34dc
+  spec:
+    clusterIP: 10.96.114.141
+    clusterIPs:
+    - 10.96.114.141
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - nodePort: 30100
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: lattice
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: lattice-mcp
+    namespace: nre-platform
+    resourceVersion: "1078"
+    uid: 35a1b2d0-fcfa-4586-aa8b-8de214326e48
+  spec:
+    clusterIP: 10.96.135.2
+    clusterIPs:
+    - 10.96.135.2
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - nodePort: 30101
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: lattice-mcp
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: mcp-server
+    namespace: nre-platform
+    resourceVersion: "1073"
+    uid: bc221462-bdeb-4b76-9f9b-6204aae9f9e4
+  spec:
+    clusterIP: 10.96.27.172
+    clusterIPs:
+    - 10.96.27.172
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - nodePort: 30080
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: mcp-server
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: nre-agent
+    namespace: nre-platform
+    resourceVersion: "518"
+    uid: 53db359c-09f4-4247-93d9-64943090c2e1
+  spec:
+    clusterIP: 10.96.12.29
+    clusterIPs:
+    - 10.96.12.29
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - nodePort: 31788
+      port: 8090
+      protocol: TCP
+      targetPort: 8090
+    selector:
+      app: nre-agent
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      meta.helm.sh/release-name: nre-platform
+      meta.helm.sh/release-namespace: nre-platform
+    creationTimestamp: "2026-04-07T07:03:16Z"
+    labels:
+      app.kubernetes.io/managed-by: Helm
+    name: qdrant
+    namespace: nre-platform
+    resourceVersion: "1075"
+    uid: 07391978-3822-4e78-837d-8c5a966410ca
+  spec:
+    clusterIP: 10.96.110.85
+    clusterIPs:
+    - 10.96.110.85
+    externalTrafficPolicy: Cluster
+    internalTrafficPolicy: Cluster
+    ipFamilies:
+    - IPv4
+    ipFamilyPolicy: SingleStack
+    ports:
+    - nodePort: 30333
+      port: 6333
+      protocol: TCP
+      targetPort: 6333
+    selector:
+      app: qdrant
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+kind: List
+metadata:
+  resourceVersion: ""

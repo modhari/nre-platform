@@ -1,40 +1,278 @@
 # =============================================================================
-# Additions — append to the bottom of your existing values.yaml
+# values.yaml — production defaults for nre-platform
+#
+# Images point to ghcr.io/modhari/ — pre-built and publicly available.
+# Override with values.local.yaml for local development (Never pull, local tags).
 # =============================================================================
 
+global:
+  namespace: nre-platform
+
+# ── lattice — EVPN analysis + BGP diagnostics ─────────────────────────────────
+lattice:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/modhari/lattice
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    USE_MCP: "true"
+    MCP_SERVER_URL: "http://mcp-server:8080"
+    MCP_AUTH_TOKEN: "change_me"
+    MCP_HMAC_SECRET: "change_me_too"
+    NRE_SCENARIO: "leaf_bgp_disable"
+    QDRANT_URL: "http://qdrant:6333"
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# ── lattice-mcp — BGP history queries + remediation planning ──────────────────
+latticeMcp:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/modhari/lattice-mcp
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    MCP_AUDIT_LOG_PATH: "/data/bgp_history/mcp_audit.jsonl"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# ── mcp-server — MCP capability gateway ──────────────────────────────────────
+mcpServer:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/modhari/mcp-server
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    MCP_AUTH_TOKEN: "change_me"
+    MCP_HMAC_SECRET: "change_me_too"
+    MCP_AUDIT_PATH: "/var/audit/mcp_audit.jsonl"
+    EVPN_ANALYSIS_URL: "http://lattice:8080"
+    BGP_HISTORY_URL: "http://lattice-mcp:8080"
+    BGP_REMEDIATION_PLAN_URL: "http://lattice-mcp:8080"
+    LATTICE_MCP_AUTH_TOKEN: "local-dev-token"
+    CAPSULE_URL: "http://capsule:8080"
+    ECMP_TRACE_URL: "http://ecmp-trace:8081"
+    QDRANT_URL: "http://qdrant:6333"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# ── nre-agent — autonomous BGP diagnostics loop ───────────────────────────────
+nreAgent:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/modhari/nre-agent
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8090
+  mode: bgp_diagnostics
+  intervalSeconds: 300
+  enableApi: "true"
+  apiPort: 8090
+  mcp:
+    url: http://mcp-server:8080
+  env:
+    NRE_AGENT_SCENARIO: ""
+    NRE_AGENT_INTERVAL_SECONDS: "300"
+    NRE_AGENT_APPROVAL_STATUS: ""
+    NRE_AGENT_APPROVAL_COOLDOWN_SECONDS: "300"
+    NRE_AGENT_API_HOST: "0.0.0.0"
+    NRE_AGENT_API_PORT: "8090"
+    NRE_AGENT_KAFKA_ENABLED: "true"
+    NRE_AGENT_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    NRE_AGENT_KAFKA_INCIDENT_TOPIC: "nre.incidents"
+    NRE_AGENT_KAFKA_PLAN_TOPIC: "nre.plans"
+    NRE_AGENT_RAG_ENABLED: "true"
+    NRE_AGENT_RAG_QDRANT_URL: "http://qdrant:6333"
+    NRE_AGENT_RAG_COLLECTION: "nre_docs"
+    NRE_AGENT_MCP_URL: "http://mcp-server:8080"
+  persistence:
+    mountPath: /data
+    approvalPath: /data/approvals
+    planMemoryPath: /data/plans
+    size: "1Gi"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+# ── ecmp-trace — Go ECMP path tracing service ────────────────────────────────
+ecmpTrace:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/modhari/ecmp-trace
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8081
+  env:
+    TRACE_TIMEOUT_SECONDS: "5"
+    TRACE_MAX_FLOWS: "8"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+# ── qdrant — vector store for RAG knowledge ──────────────────────────────────
+qdrant:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: qdrant/qdrant
+    tag: "v1.13.2"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 6333
+  persistence:
+    enabled: true
+    size: 10Gi
+    mountPath: /qdrant/storage
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+# ── kafka — event bus ─────────────────────────────────────────────────────────
+kafka:
+  image:
+    repository: apache/kafka
+    tag: "3.7.1"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 9092
+
+# ── influxdb — metrics storage ────────────────────────────────────────────────
+influxdb:
+  image:
+    repository: influxdb
+    tag: "2.7"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8086
+  adminToken: "nreadminsupersecrettoken"
+  org: "nre"
+  bucket: "nre"
+  username: "nreadmin"
+  password: "nreadminpassword"
+
+# ── observability pipeline — kafka → influxdb writer ─────────────────────────
+observabilityPipeline:
+  enabled: true
+  kafkaInfluxWriter:
+    replicaCount: 1
+    image:
+      repository: ghcr.io/modhari/kafka-influx-writer
+      tag: latest
+      pullPolicy: Always
+    env:
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      KAFKA_TOPICS: "nre.plans,nre.incidents"
+      INFLUXDB_URL: "http://influxdb:8086"
+      INFLUXDB_TOKEN: "nreadminsupersecrettoken"
+      INFLUXDB_ORG: "nre"
+      INFLUXDB_BUCKET: "nre"
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "300m"
+        memory: "256Mi"
+
+# ── BGP diagnostics snapshot ──────────────────────────────────────────────────
+bgpDiagnostics:
+  enabled: true
+  fabric: prod-dc-west
+  device: leaf-01
+  snapshotFile: /data/bgp_snapshot.json
+  snapshotContent: |
+    {
+      "events": [
+        {
+          "peer": "10.0.0.12",
+          "session_state": "idle",
+          "last_error": "tcp_connect_failed",
+          "shared_dependency": "rr-01",
+          "address_family": "ipv4_unicast",
+          "root_cause_hint": "rr-01",
+          "timestamp": "2026-03-29T12:00:06Z",
+          "logs": ["tcp connect failed to route reflector rr-01"]
+        },
+        {
+          "peer": "10.0.0.13",
+          "session_state": "idle",
+          "last_error": "tcp_connect_failed",
+          "shared_dependency": "rr-01",
+          "address_family": "ipv4_unicast",
+          "root_cause_hint": "rr-01",
+          "timestamp": "2026-03-29T12:00:07Z",
+          "logs": ["tcp connect failed to route reflector rr-01"]
+        },
+        {
+          "peer": "10.0.0.11",
+          "session_state": "established",
+          "prefixes_received": 0,
+          "shared_dependency": "rr-01",
+          "address_family": "ipv4_unicast",
+          "root_cause_hint": "peer_not_advertising_or_upstream_issue",
+          "timestamp": "2026-03-29T12:00:05Z",
+          "logs": ["neighbor 10.0.0.11 established but no prefixes received"]
+        }
+      ]
+    }
+
 # ── BGP history persistence ───────────────────────────────────────────────────
-# Controls the PVC mounted at /data/bgp_history inside lattice-mcp.
-# The BgpHistoryStore flushes all four tables (snapshots, summaries,
-# events, anomalies) to JSON files here after every write operation.
-# On pod restart the store reloads from disk before serving any requests.
-#
-# Set enabled: false to revert to fully in-memory operation.
-# Useful for CI where you want a clean store on every run.
 bgpHistoryPersistence:
   enabled: true
   size: 2Gi
-  # Must match BGP_HISTORY_PERSIST_DIR in the lattice-mcp deployment env
   mountPath: /data/bgp_history
 
 # ── BGP RAG vendor filter ─────────────────────────────────────────────────────
-# Set this to the vendor of the devices under bgpDiagnostics.device.
-# The nre-agent passes this to mcp_server bgp.rag_context so Qdrant
-# returns vendor-specific documentation chunks rather than all vendors.
-#
-# Valid values match the tags in your Qdrant collection:
-#   arista   juniper   cisco   nokia
-#
-# Leave empty to query without vendor filtering (returns all vendors).
-# This is the safe default until you know which vendor your devices are.
 bgpRagVendor: ""
 
-# ── nre-agent: BGP vendor env var ────────────────────────────────────────────
-# Passes bgpRagVendor into the nre-agent container so loop.py can
-# include it in the bgp.rag_context call.
-# Reference this in your nre-agent-deployment.yaml env section:
-#
-#   - name: NRE_AGENT_BGP_VENDOR
-#     value: {{ .Values.bgpRagVendor | quote }}
-#
-# The nre-agent-deployment.yaml template already exists in your repo —
-# add that one env entry to its env list and you are done.
+# ── Optional components (disabled by default) ─────────────────────────────────
+victoriaMetrics:
+  enabled: false
+
+capsule:
+  enabled: false

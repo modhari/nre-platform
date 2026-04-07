@@ -176,3 +176,16 @@ post-install:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "  post-install complete. Run 'make smoke' to verify."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+## push: Tag and push all locally built images to ghcr.io/modhari/
+REGISTRY := ghcr.io/modhari
+
+push: push-nre-agent push-mcp-server push-lattice push-lattice-mcp push-ecmp-trace push-kafka-influx-writer
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "  All images pushed to $(REGISTRY)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+push-%:
+	docker tag $*:local $(REGISTRY)/$*:latest
+	docker push $(REGISTRY)/$*:latest

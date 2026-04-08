@@ -109,9 +109,9 @@ nreAgent:
     NRE_AGENT_RAG_COLLECTION: "nre_docs"
     NRE_AGENT_MCP_URL: "http://mcp-server:8080"
   persistence:
-    mountPath: /data
-    approvalPath: /data/approvals
-    planMemoryPath: /data/plans
+    mountPath: /agent-data
+    approvalPath: /agent-data/approvals
+    planMemoryPath: /agent-data/plans
     size: "1Gi"
   resources:
     requests:
@@ -226,7 +226,7 @@ victoriaMetrics:
   enabled: false
 
 capsule:
-  enabled: false
+  enabled: true
 
 bgpDiagnostics:
   enabled: true
@@ -268,3 +268,49 @@ bgpDiagnostics:
         }
       ]
     }
+# =============================================================================
+# Capsule — local dev overrides
+# =============================================================================
+
+capsule:
+  enabled: true
+
+  sharedPvc:
+    size: 1Gi
+
+  # ── Capsule bgp-snapshot-writer ─────────────────────────────────────────────
+  image:
+    repository: capsule
+    tag: local
+    pullPolicy: Never
+
+  pollIntervalSeconds: 30
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+  # ── gNMI simulator ───────────────────────────────────────────────────────────
+  gnmiSimulator:
+    enabled: true
+    image:
+      repository: gnmi-simulator
+      tag: local
+      pullPolicy: Never
+
+    # Short scenario duration for local dev — easier to observe all scenarios
+    scenarioDurationSeconds: 120
+
+    pollIntervalSeconds: 30
+
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "200m"
+        memory: "128Mi"

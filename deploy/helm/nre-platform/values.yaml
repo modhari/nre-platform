@@ -114,9 +114,9 @@ nreAgent:
     NRE_AGENT_RAG_COLLECTION: "nre_docs"
     NRE_AGENT_MCP_URL: "http://mcp-server:8080"
   persistence:
-    mountPath: /data
-    approvalPath: /data/approvals
-    planMemoryPath: /data/plans
+    mountPath: /agent-data
+    approvalPath: /agent-data/approvals
+    planMemoryPath: /agent-data/plans
     size: "1Gi"
   resources:
     requests:
@@ -276,3 +276,71 @@ victoriaMetrics:
 
 capsule:
   enabled: false
+# =============================================================================
+# Capsule — gNMI telemetry pipeline
+#
+# When capsule.enabled is true, the gNMI pipeline replaces the static
+# bgp_snapshot.json ConfigMap:
+#
+#   gnmi-simulator → /data/gnmic_bgp.json → capsule → /data/bgp_snapshot.json
+#       ↓
+#   nre-agent reads /data/bgp_snapshot.json (same path as ConfigMap mode)
+#
+# To switch to real devices:
+#   1. Set capsule.gnmiSimulator.enabled: false
+#   2. Deploy gnmic pointing at real devices with file output to
+#      /data/gnmic_bgp.json on the capsule-shared-data PVC
+#   3. Nothing else in the pipeline changes
+# =============================================================================
+
+capsule:
+  enabled: false
+
+  # ── Shared PVC ──────────────────────────────────────────────────────────────
+  sharedPvc:
+    # Size covers gnmic_bgp.json + bgp_snapshot.json + rolling history.
+    # 1Gi is generous for JSON files — actual usage is typically < 10MB.
+    size: 1Gi
+
+  # ── Capsule bgp-snapshot-writer ─────────────────────────────────────────────
+  image:
+    repository: ghcr.io/modhari/capsule
+    tag: latest
+    pullPolicy: Always
+
+  # How often capsule checks gnmic_bgp.json for changes and rewrites
+  # bgp_snapshot.json. Should be <= nre-agent intervalSeconds.
+  pollIntervalSeconds: 30
+
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "300m"
+      memory: "256Mi"
+
+  # ── gNMI simulator ───────────────────────────────────────────────────────────
+  # Generates synthetic BGP telemetry for all four vendors.
+  # Set enabled: false when using real gnmic against real devices.
+  gnmiSimulator:
+    enabled: true
+    image:
+      repository: ghcr.io/modhari/gnmi-simulator
+      tag: latest
+      pullPolicy: Always
+
+    # How long each fault scenario runs before advancing to the next.
+    # Scenarios: healthy → rr_failure → prefix_drain → flap → recovery
+    scenarioDurationSeconds: 120
+
+    # How often the simulator writes a new snapshot to disk.
+    pollIntervalSeconds: 30
+
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "200m"
+        memory: "128Mi"

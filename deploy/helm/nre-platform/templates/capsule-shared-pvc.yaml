@@ -1,0 +1,47 @@
+# =============================================================================
+# capsule-shared-pvc.yaml — Shared PVC for the gNMI telemetry pipeline
+#
+# Three pods share this volume:
+#
+#   gnmi-simulator  writes  /data/gnmic_bgp.json
+#       ↓
+#   capsule         reads   /data/gnmic_bgp.json
+#                   writes  /data/bgp_snapshot.json
+#       ↓
+#   nre-agent       reads   /data/bgp_snapshot.json
+#
+# Without Capsule (capsule.enabled: false), nre-agent reads from the
+# bgp_snapshot.json written by the static ConfigMap mount. The ConfigMap
+# path and the PVC path are the same — /data/bgp_snapshot.json — so
+# the agent deployment template does not need to change between modes.
+#
+# Controlled by values.capsule.enabled. When false, this PVC is not
+# created and the agent falls back to the ConfigMap.
+# =============================================================================
+
+{{- if .Values.capsule.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: capsule-shared-data
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: capsule
+    {{- include "nre.labels" . | nindent 4 }}
+  annotations:
+    # Document which pods use this PVC so it is not accidentally deleted
+    nre-platform/used-by: "gnmi-simulator, capsule, nre-agent"
+    nre-platform/gnmic-output: "/data/gnmic_bgp.json"
+    nre-platform/snapshot-output: "/data/bgp_snapshot.json"
+spec:
+  accessModes:
+    # ReadWriteMany allows all three pods to mount simultaneously.
+    # kind uses hostPath provisioner which supports ReadWriteOnce only —
+    # so on kind we use ReadWriteOnce and rely on pod scheduling to keep
+    # all three pods on the same node (which kind always does — one node).
+    # On a real multi-node cluster, use a ReadWriteMany storage class.
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.capsule.sharedPvc.size }}
+{{- end }}

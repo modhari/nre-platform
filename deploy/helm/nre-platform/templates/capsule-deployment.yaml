@@ -1,0 +1,114 @@
+# =============================================================================
+# capsule-deployment.yaml
+#
+# Runs the Capsule BGP snapshot writer. Reads gnmic event-format JSON from
+# /data/gnmic_bgp.json (written by gnmi-simulator or real gnmic) and
+# translates it into /data/bgp_snapshot.json which nre-agent reads.
+#
+# Startup sequence:
+#   1. Pod starts and waits for /data/gnmic_bgp.json to appear
+#   2. Once found, begins the 30s translation loop
+#   3. nre-agent reads /data/bgp_snapshot.json on its next loop iteration
+#
+# Only deployed when capsule.enabled is true.
+# =============================================================================
+
+{{- if .Values.capsule.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capsule
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: capsule
+    {{- include "nre.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: capsule
+  template:
+    metadata:
+      labels:
+        app: capsule
+    spec:
+      containers:
+        - name: capsule
+          image: "{{ .Values.capsule.image.repository }}:{{ .Values.capsule.image.tag }}"
+          imagePullPolicy: {{ .Values.capsule.image.pullPolicy }}
+
+          env:
+            # ── Input: gnmic event-format JSON ────────────────────────────
+            - name: GNMIC_OUTPUT_FILE
+              value: "/data/gnmic_bgp.json"
+
+            # ── Output: bgp_snapshot.json for nre-agent ───────────────────
+            - name: SNAPSHOT_OUTPUT_FILE
+              value: "/data/bgp_snapshot.json"
+
+            # ── Poll interval ─────────────────────────────────────────────
+            # How often to check gnmic_bgp.json for changes and rewrite
+            # bgp_snapshot.json. Should be < nre-agent loop interval.
+            - name: POLL_INTERVAL_SECONDS
+              value: {{ .Values.capsule.pollIntervalSeconds | quote }}
+
+            # ── Fabric label ──────────────────────────────────────────────
+            - name: FABRIC_NAME
+              value: {{ .Values.bgpDiagnostics.fabric | quote }}
+
+            # ── Startup wait ──────────────────────────────────────────────
+            # How long to wait for gnmic_bgp.json before giving up.
+            # Set high enough to cover gnmi-simulator cold start.
+            - name: STARTUP_WAIT_SECONDS
+              value: "300"
+
+          volumeMounts:
+            # Shared PVC — reads gnmic_bgp.json, writes bgp_snapshot.json
+            - name: shared-data
+              mountPath: /data
+
+          # ── Readiness probe ───────────────────────────────────────────────
+          # Ready once bgp_snapshot.json exists and has content.
+          # nre-agent waits for this before its first diagnostic loop.
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "test -s /data/bgp_snapshot.json"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+
+          # ── Liveness probe ────────────────────────────────────────────────
+          # bgp_snapshot.json must have been updated in the last 5 minutes.
+          # If the writer stalls, Kubernetes restarts the pod.
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  [ $(( $(date +%s) - $(date -r /data/bgp_snapshot.json +%s 2>/dev/null || echo 0) )) -lt 300 ]
+            initialDelaySeconds: 60
+            periodSeconds: 60
+
+          resources:
+            {{- toYaml .Values.capsule.resources | nindent 12 }}
+
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: capsule-shared-data
+
+      # ── Scheduling ─────────────────────────────────────────────────────────
+      # Same node as gnmi-simulator and nre-agent for ReadWriteOnce PVC.
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: nre-agent
+                topologyKey: kubernetes.io/hostname
+{{- end }}

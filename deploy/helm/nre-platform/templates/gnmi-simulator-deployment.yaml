@@ -1,0 +1,91 @@
+# =============================================================================
+# gnmi-simulator-deployment.yaml
+#
+# Runs the synthetic BGP telemetry generator. Cycles through five fault
+# scenarios (healthy, rr_failure, prefix_drain, flap, recovery) and writes
+# gnmic event-format JSON to /data/gnmic_bgp.json on the shared PVC.
+#
+# This pod is only deployed when capsule.enabled is true. When disabled,
+# nre-agent reads from the static bgp_snapshot.json ConfigMap instead.
+#
+# To switch to real devices:
+#   1. Set capsule.gnmiSimulator.enabled: false in values
+#   2. Deploy gnmic pointing at real devices with file output to
+#      /data/gnmic_bgp.json on the same PVC
+#   3. Nothing else in the pipeline changes
+# =============================================================================
+
+{{- if and .Values.capsule.enabled .Values.capsule.gnmiSimulator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gnmi-simulator
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: gnmi-simulator
+    {{- include "nre.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gnmi-simulator
+  template:
+    metadata:
+      labels:
+        app: gnmi-simulator
+    spec:
+      containers:
+        - name: gnmi-simulator
+          image: "{{ .Values.capsule.gnmiSimulator.image.repository }}:{{ .Values.capsule.gnmiSimulator.image.tag }}"
+          imagePullPolicy: {{ .Values.capsule.gnmiSimulator.image.pullPolicy }}
+
+          env:
+            # ── Output path on the shared PVC ─────────────────────────────
+            - name: GNMIC_OUTPUT_FILE
+              value: "/data/gnmic_bgp.json"
+
+            # ── Scenario timing ───────────────────────────────────────────
+            # Each scenario runs for this many seconds before advancing.
+            # Set to a large value (e.g. 3600) to hold one scenario for
+            # manual testing.
+            - name: SCENARIO_DURATION_SECONDS
+              value: {{ .Values.capsule.gnmiSimulator.scenarioDurationSeconds | quote }}
+
+            # ── Poll interval ─────────────────────────────────────────────
+            # How often the simulator writes a new snapshot to disk.
+            # Should be <= nre-agent's loop interval (300s) so the agent
+            # always has fresh data.
+            - name: POLL_INTERVAL_SECONDS
+              value: {{ .Values.capsule.gnmiSimulator.pollIntervalSeconds | quote }}
+
+            # ── Fabric label ──────────────────────────────────────────────
+            - name: FABRIC_NAME
+              value: {{ .Values.bgpDiagnostics.fabric | quote }}
+
+          volumeMounts:
+            # Mount the shared PVC — gnmi-simulator writes here,
+            # capsule and nre-agent read from here
+            - name: shared-data
+              mountPath: /data
+
+          resources:
+            {{- toYaml .Values.capsule.gnmiSimulator.resources | nindent 12 }}
+
+      volumes:
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: capsule-shared-data
+
+      # ── Scheduling ────────────────────────────────────────────────────────
+      # Keep gnmi-simulator, capsule, and nre-agent on the same node so the
+      # ReadWriteOnce PVC can be mounted by all three simultaneously on kind.
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: nre-agent
+                topologyKey: kubernetes.io/hostname
+{{- end }}

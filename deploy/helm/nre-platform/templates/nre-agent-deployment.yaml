@@ -63,26 +63,49 @@ spec:
               value: {{ .Values.bgpDiagnostics.fabric | quote }}
             - name: NRE_AGENT_BGP_DEVICE
               value: {{ .Values.bgpDiagnostics.device | quote }}
+            # ── Snapshot file path ────────────────────────────────────────
+            # Same path regardless of mode — capsule writes here when
+            # enabled, ConfigMap is mounted here when disabled.
             - name: NRE_AGENT_BGP_SNAPSHOT_FILE
-              value: {{ .Values.bgpDiagnostics.snapshotFile | quote }}
+              value: {{ if .Values.capsule.enabled }}"/data/bgp_snapshot.json"{{ else }}"/agent-data/bgp_snapshot.json"{{ end }}
             {{- end }}
           ports:
             - containerPort: {{ .Values.nreAgent.service.port }}
           volumeMounts:
+            # ── Agent persistent storage (approvals, plans) ───────────────
             - name: nre-agent-storage
               mountPath: {{ .Values.nreAgent.persistence.mountPath }}
-            {{- if .Values.bgpDiagnostics.enabled }}
+
+            {{- if .Values.capsule.enabled }}
+            # ── Capsule mode: read bgp_snapshot.json from shared PVC ──────
+            # gnmi-simulator → capsule → /data/bgp_snapshot.json
+            - name: capsule-shared-data
+              mountPath: /data
+            {{- else if .Values.bgpDiagnostics.enabled }}
+            # ── Static mode: read bgp_snapshot.json from ConfigMap ────────
+            # Falls back to demo snapshot when capsule is disabled.
             - name: nre-agent-bgp-snapshot
-              mountPath: {{ .Values.bgpDiagnostics.snapshotFile | quote }}
+              mountPath: /agent-data/bgp_snapshot.json
               subPath: bgp_snapshot.json
             {{- end }}
+
           resources:
             {{- toYaml .Values.nreAgent.resources | nindent 12 }}
+
       volumes:
+        # ── Agent persistent storage ──────────────────────────────────────
         - name: nre-agent-storage
           persistentVolumeClaim:
             claimName: nre-agent-approvals
-        {{- if .Values.bgpDiagnostics.enabled }}
+
+        {{- if .Values.capsule.enabled }}
+        # ── Capsule mode: shared PVC with gnmi-simulator and capsule ──────
+        - name: capsule-shared-data
+          persistentVolumeClaim:
+            claimName: capsule-shared-data
+
+        {{- else if .Values.bgpDiagnostics.enabled }}
+        # ── Static mode: ConfigMap with demo BGP snapshot ─────────────────
         - name: nre-agent-bgp-snapshot
           configMap:
             name: nre-agent-bgp-snapshot

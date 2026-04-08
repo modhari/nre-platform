@@ -1,0 +1,4 @@
+# gnmi-simulator has no external dependencies.
+# All logic uses Python stdlib: json, time, datetime, pathlib, logging.
+# This file exists so the Dockerfile pip install step is consistent
+# with other services and future dependencies can be added here.

@@ -1,0 +1,37 @@
+{
+  "run_id": "20260408T192659Z",
+  "domain": "bgp",
+  "collection_name": "nre_bgp_docs",
+  "embedding_model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "started_at_utc": "2026-04-08T19:26:59.994040+00:00",
+  "documents": [
+    {
+      "document_id": "arista_bgp_troubleshooting",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/bgp/chunks/jsonl/arista_bgp_troubleshooting.jsonl",
+      "chunks_written": 5,
+      "status": "success"
+    },
+    {
+      "document_id": "juniper_bgp_troubleshooting",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/bgp/chunks/jsonl/juniper_bgp_troubleshooting.jsonl",
+      "chunks_written": 5,
+      "status": "success"
+    },
+    {
+      "document_id": "cisco_bgp_troubleshooting",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/bgp/chunks/jsonl/cisco_bgp_troubleshooting.jsonl",
+      "chunks_written": 5,
+      "status": "success"
+    },
+    {
+      "document_id": "bgp_protocol_reference",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/bgp/chunks/jsonl/bgp_protocol_reference.jsonl",
+      "chunks_written": 3,
+      "status": "success"
+    }
+  ],
+  "total_chunks": 18,
+  "total_documents": 4,
+  "finished_at_utc": "2026-04-08T19:27:00.568903+00:00",
+  "status": "success"
+}

@@ -1,0 +1,10 @@
+# ── Capsule library dependencies ──────────────────────────────────────────────
+# The Capsule library is installed from source via the Dockerfile COPY + pip
+# install -e step. These are its runtime dependencies.
+
+# YAML support for loading gnmic config and Capsule config files
+pyyaml==6.0.1
+
+# No other external dependencies — Capsule core uses Python stdlib only.
+# sentence-transformers and qdrant-client are NOT needed here — those are
+# only required by the knowledge ingest scripts in the lattice service.

@@ -3,13 +3,20 @@
 #
 # QUICK START (cold machine, first time):
 #   make up
+#   make post-install
+#   make ingest
+#   make smoke
 #
 # DAY-TO-DAY (already have a cluster):
 #   make deploy                  # re-deploy helm after values changes
-#   make dev SERVICE=nre-agent   # rebuild + redeploy ONE service after code changes
+#   make dev SERVICE=nre-agent   # rebuild + redeploy ONE service
 #   make logs SERVICE=nre-agent  # tail logs for a service
 #   make status                  # show all pod health
 #   make smoke                   # hit every service endpoint
+#
+# CAPSULE (live BGP telemetry pipeline):
+#   make capsule-up              # enable gnmi-simulator + capsule
+#   make capsule-down            # revert to static ConfigMap
 #
 # TEARDOWN:
 #   make down                    # delete the kind cluster
@@ -21,6 +28,7 @@ HELM_RELEASE  := nre-platform
 HELM_CHART    := deploy/helm/nre-platform
 VALUES_LOCAL  := $(HELM_CHART)/values.local.yaml
 KIND_CONFIG   := kind-config.yaml
+REGISTRY      := ghcr.io/modhari
 
 IMAGES := \
 	nre-agent:local \
@@ -31,7 +39,9 @@ IMAGES := \
 	kafka-influx-writer:local
 
 .PHONY: up down build load deploy cluster-up cluster-down \
-        build-% load-% dev status logs smoke help
+        build-% load-% dev status logs smoke help \
+        post-install ingest capsule-sync capsule-up capsule-down \
+        push push-%
 
 .DEFAULT_GOAL := help
 
@@ -41,16 +51,16 @@ up: cluster-up build load deploy
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "  NRE Platform is up."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "  mcp-server   →  http://localhost:8080/mcp"
-	@echo "  nre-agent    →  http://localhost:8090"
-	@echo "  lattice      →  http://localhost:8100"
-	@echo "  lattice-mcp  →  http://localhost:8101"
-	@echo "  ecmp-trace   →  http://localhost:8081"
-	@echo "  qdrant       →  http://localhost:6333"
-	@echo "  kafka        →  localhost:9092"
-	@echo "  influxdb     →  http://localhost:8086"
+	@echo "  mcp-server   ->  http://localhost:8080/mcp"
+	@echo "  nre-agent    ->  http://localhost:8090"
+	@echo "  lattice      ->  http://localhost:8100"
+	@echo "  lattice-mcp  ->  http://localhost:8101"
+	@echo "  ecmp-trace   ->  http://localhost:8081"
+	@echo "  qdrant       ->  http://localhost:6333"
+	@echo "  kafka        ->  localhost:9092"
+	@echo "  influxdb     ->  http://localhost:8086"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "  Run 'make smoke' to verify all endpoints."
+	@echo "  Run 'make post-install' next."
 	@echo ""
 
 ## down: Delete the kind cluster.
@@ -59,7 +69,7 @@ down: cluster-down
 ## cluster-up: Create the kind cluster if it does not already exist.
 cluster-up:
 	@if kind get clusters 2>/dev/null | grep -q "^$(CLUSTER_NAME)$$"; then \
-		echo "[cluster] '$(CLUSTER_NAME)' already exists — skipping create"; \
+		echo "[cluster] '$(CLUSTER_NAME)' already exists -- skipping create"; \
 	else \
 		echo "[cluster] creating '$(CLUSTER_NAME)'..."; \
 		kind create cluster --name $(CLUSTER_NAME) --config $(KIND_CONFIG); \
@@ -71,7 +81,17 @@ cluster-down:
 	kind delete cluster --name $(CLUSTER_NAME)
 
 ## build: Build all service images.
-build: build-nre-agent build-mcp-server build-lattice build-lattice-mcp build-ecmp-trace build-kafka-influx-writer
+build: build-nre-agent build-mcp-server build-lattice build-lattice-mcp \
+       build-ecmp-trace build-kafka-influx-writer build-capsule build-gnmi-simulator
+
+## capsule-sync: Copy Capsule library source into services/capsule/src/ before building.
+capsule-sync:
+	@echo "[capsule-sync] copying Capsule library source..."
+	@mkdir -p services/capsule/src
+	@cp -r ~/git/Capsule/src/gnmi_collection_agent services/capsule/src/
+	@cp ~/git/Capsule/setup.py services/capsule/setup.py
+	@cp ~/git/Capsule/setup.cfg services/capsule/setup.cfg
+	@echo "[capsule-sync] done -- services/capsule/src/ is ready"
 
 build-nre-agent:
 	@echo "[build] nre-agent..."
@@ -93,6 +113,14 @@ build-ecmp-trace:
 	@echo "[build] ecmp-trace..."
 	docker build -t ecmp-trace:local services/ecmp_trace/
 
+build-capsule: capsule-sync
+	@echo "[build] capsule..."
+	docker build -t capsule:local services/capsule/
+
+build-gnmi-simulator:
+	@echo "[build] gnmi-simulator..."
+	docker build -t gnmi-simulator:local services/gnmi_simulator/
+
 build-kafka-influx-writer:
 	@echo "[build] kafka-influx-writer..."
 	docker build -t kafka-influx-writer:local services/observability/
@@ -100,7 +128,7 @@ build-kafka-influx-writer:
 ## load: Load all locally-built images into the kind cluster.
 load:
 	@for img in $(IMAGES); do \
-		echo "[load] $$img → kind/$(CLUSTER_NAME)"; \
+		echo "[load] $$img -> kind/$(CLUSTER_NAME)"; \
 		kind load docker-image $$img --name $(CLUSTER_NAME); \
 	done
 
@@ -143,21 +171,19 @@ endif
 ## smoke: Hit every service endpoint.
 smoke:
 	@echo ""
-	@echo "── smoke test ─────────────────────────────────────"
-	@curl -sf http://localhost:8081/          -o /dev/null && echo "  ecmp-trace   OK" || echo "  ecmp-trace   FAIL"
-	@curl -sf http://localhost:6333/          -o /dev/null && echo "  qdrant       OK" || echo "  qdrant       FAIL"
-	@curl -sf http://localhost:8086/ping      -o /dev/null && echo "  influxdb     OK" || echo "  influxdb     FAIL"
+	@echo "-- smoke test --------------------------------------"
+	@curl -sf http://localhost:8081/             -o /dev/null && echo "  ecmp-trace   OK" || echo "  ecmp-trace   FAIL"
+	@curl -sf http://localhost:6333/             -o /dev/null && echo "  qdrant       OK" || echo "  qdrant       FAIL"
+	@curl -sf http://localhost:8086/ping         -o /dev/null && echo "  influxdb     OK" || echo "  influxdb     FAIL"
 	@curl -sf http://localhost:8101/health/ready -o /dev/null && echo "  lattice-mcp  OK" || echo "  lattice-mcp  FAIL"
-	@curl -sf http://localhost:8100/          -o /dev/null && echo "  lattice      OK" || echo "  lattice      FAIL"
-	@curl -sf http://localhost:8090/approvals -o /dev/null && echo "  nre-agent    OK" || echo "  nre-agent    FAIL"
-	@echo "───────────────────────────────────────────────────"
+	@curl -sf http://localhost:8100/             -o /dev/null && echo "  lattice      OK" || echo "  lattice      FAIL"
+	@curl -sf http://localhost:8090/approvals    -o /dev/null && echo "  nre-agent    OK" || echo "  nre-agent    FAIL"
+	@kubectl get pod -n $(NAMESPACE) -l app=capsule --no-headers 2>/dev/null | grep -q Running && echo "  capsule      OK" || echo "  capsule      (disabled)"
+	@kubectl get pod -n $(NAMESPACE) -l app=gnmi-simulator --no-headers 2>/dev/null | grep -q Running && echo "  gnmi-sim     OK" || echo "  gnmi-sim     (disabled)"
+	@echo "----------------------------------------------------"
 	@echo ""
 
-## help: Print this help.
-help:
-	@grep -E '^##' $(MAKEFILE_LIST) | sed 's/## /  /'
-
-## post-install: Run once after 'make up' — sets up InfluxDB, patches NodePort services, restarts writers.
+## post-install: Run once after 'make up' -- sets up InfluxDB, patches NodePort services.
 post-install:
 	@echo "[post-install] waiting for all pods to be ready..."
 	@kubectl wait --for=condition=ready pod -l app=influxdb -n $(NAMESPACE) --timeout=180s
@@ -181,9 +207,7 @@ post-install:
 	@kubectl rollout restart deployment/kafka-influx-writer -n $(NAMESPACE)
 	@kubectl rollout status  deployment/kafka-influx-writer -n $(NAMESPACE) --timeout=60s
 	@echo ""
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "  post-install complete. Run 'make smoke' to verify."
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "post-install complete. Run 'make smoke' to verify."
 
 ## ingest: Ingest BGP knowledge chunks into Qdrant (runs locally against the kind cluster).
 ingest:
@@ -194,20 +218,32 @@ ingest:
 	@echo "[ingest] running BGP knowledge ingest against Qdrant at localhost:6333..."
 	@cd services/lattice && QDRANT_URL=http://localhost:6333 \
 		/tmp/nre-ingest-venv/bin/python -m internal.knowledge.ingest.ingest_bgp
-	@echo ""
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "  BGP knowledge ingested. RAG context is now active."
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "BGP knowledge ingested. RAG context is now active."
+
+## capsule-up: Build and deploy capsule + gnmi-simulator (enable live BGP telemetry).
+capsule-up: capsule-sync build-capsule build-gnmi-simulator
+	kind load docker-image capsule:local --name $(CLUSTER_NAME)
+	kind load docker-image gnmi-simulator:local --name $(CLUSTER_NAME)
+	python3 scripts/capsule_toggle.py enable
+	$(MAKE) deploy
+	@echo "Capsule is live. BGP telemetry pipeline active."
+	@echo "Watch: make logs SERVICE=nre-agent"
+
+## capsule-down: Disable capsule and revert nre-agent to static ConfigMap.
+capsule-down:
+	python3 scripts/capsule_toggle.py disable
+	$(MAKE) deploy
+	@echo "Capsule disabled. nre-agent using static ConfigMap."
 
 ## push: Tag and push all locally built images to ghcr.io/modhari/
-REGISTRY := ghcr.io/modhari
-
-push: push-nre-agent push-mcp-server push-lattice push-lattice-mcp push-ecmp-trace push-kafka-influx-writer
-	@echo ""
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "  All images pushed to $(REGISTRY)"
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+push: push-nre-agent push-mcp-server push-lattice push-lattice-mcp \
+      push-ecmp-trace push-kafka-influx-writer push-capsule push-gnmi-simulator
+	@echo "All images pushed to $(REGISTRY)"
 
 push-%:
 	docker tag $*:local $(REGISTRY)/$*:latest
 	docker push $(REGISTRY)/$*:latest
+
+## help: Print this help.
+help:
+	@grep -E '^##' $(MAKEFILE_LIST) | sed 's/## /  /'

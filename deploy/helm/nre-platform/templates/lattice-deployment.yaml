@@ -18,6 +18,8 @@ spec:
           image: "{{ .Values.lattice.image.repository }}:{{ .Values.lattice.image.tag }}"
           imagePullPolicy: {{ .Values.lattice.image.pullPolicy }}
           env:
+            - name: LATTICE_ROOT
+              value: "/app" 
             # -------------------------------------------------
             # Enable MCP path explicitly
             # -------------------------------------------------

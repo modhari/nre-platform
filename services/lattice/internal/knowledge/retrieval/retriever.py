@@ -55,7 +55,6 @@ class EvpnVxlanRetriever:
         self.config = config or RetrieverConfig()
         self.client = QdrantClient(
             url=self.config.qdrant_url,
-            check_compatibility=False,
         )
         self.embedder = SentenceTransformer(self.config.embedding_model_name)
 
@@ -153,18 +152,18 @@ class EvpnVxlanRetriever:
         query_vector = self.embedder.encode(req.query, normalize_embeddings=True).tolist()
         query_filter = self._make_filter(req)
         
-        points = self.client.query_points(
+        points = self.client.search(
             collection_name=self.config.collection_name,
-            query=query_vector,
+            query_vector=query_vector,
             query_filter=query_filter,
             limit=req.limit or self.config.default_limit,
             score_threshold=self.config.score_threshold,
             with_payload=True,
             with_vectors=False,
-        )        
+        )
 
         results: list[RetrievedChunk] = []
-        for point in points.points:
+        for point in points:
             payload = point.payload or {}
             results.append(
                 RetrievedChunk(

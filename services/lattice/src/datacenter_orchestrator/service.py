@@ -9,6 +9,10 @@ from datacenter_orchestrator.agent.mcp_client import MCPClient
 from datacenter_orchestrator.mcp.security import McpAuthConfig
 from datacenter_orchestrator.runtime import build_runner
 
+# EVPN analysis — imported lazily so missing deps don't break BGP routes
+import os as _os
+_LATTICE_ROOT = _os.environ.get("LATTICE_ROOT", "/app")
+
 app = FastAPI(title="lattice", version="0.1.0")
 
 
@@ -175,6 +179,66 @@ async def diagnostics_bgp(request: Request) -> dict:
         "device": device,
         "diagnosis": diagnosis.get("result", {}),
     }
+
+
+@app.post("/evpn/analyze")
+async def evpn_analyze(request: Request) -> dict:
+    """
+    EVPN analysis endpoint — RAG retrieval + policy-governed MCP plan.
+
+    Required fields: question, vendor, scenario
+    Optional: nos_family, capability, feature, device, fabric,
+              site, pod, vrf, vni, mac, vtep, incident_id, limit
+    """
+    body = (
+        await request.json()
+        if request.headers.get("content-type", "").startswith("application/json")
+        else {}
+    )
+
+    try:
+        from internal.knowledge.orchestration.evpn_analysis_service import (
+            EVPNAnalysisRequest,
+            EVPNAnalysisService,
+        )
+
+        policy_dir        = _os.path.join(_LATTICE_ROOT, "internal", "knowledge", "policy", "evpn")
+        coverage_path     = _os.path.join(_LATTICE_ROOT, "data", "generated", "schema",
+                                          "evpn_vxlan_coverage_summary.json")
+
+        service = EVPNAnalysisService(
+            coverage_summary_path=coverage_path,
+            policy_dir=policy_dir,
+        )
+
+        req = EVPNAnalysisRequest(
+            question=body.get("question", ""),
+            vendor=body.get("vendor", ""),
+            nos_family=body.get("nos_family"),
+            scenario=body.get("scenario"),
+            capability=body.get("capability"),
+            feature=body.get("feature"),
+            device=body.get("device"),
+            fabric=body.get("fabric"),
+            site=body.get("site"),
+            pod=body.get("pod"),
+            vrf=body.get("vrf"),
+            vni=body.get("vni"),
+            mac=body.get("mac"),
+            vtep=body.get("vtep"),
+            incident_id=body.get("incident_id"),
+            timestamp_utc=body.get("timestamp_utc"),
+            limit=body.get("limit", 5),
+        )
+
+        result = service.analyze(req)
+        return {"ok": True, "result": result.to_dict()}
+
+    except Exception as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"ok": False, "error": str(exc)},
+        )
 
 
 def _build_mcp_client() -> MCPClient:

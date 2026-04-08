@@ -68,11 +68,16 @@ class EVPNAnalysisService:
         self,
         coverage_summary_path: str | Path | None = None,
         policy_dir: str | Path | None = None,
+        qdrant_url: str | None = None,
     ) -> None:
+        import os as _os
         if coverage_summary_path is None:
             coverage_summary_path = Path("data/generated/schema/evpn_vxlan_coverage_summary.json")
 
-        self.reasoner = EvpnReasoner()
+        from internal.knowledge.retrieval.retriever import EvpnVxlanRetriever, RetrieverConfig
+        _qdrant_url = qdrant_url or _os.environ.get("QDRANT_URL", "http://127.0.0.1:6333")
+        retriever = EvpnVxlanRetriever(config=RetrieverConfig(qdrant_url=_qdrant_url))
+        self.reasoner = EvpnReasoner(retriever=retriever)
         self.planner = EVPNMCPPlanner(policy_dir=policy_dir)
         self.registry = EVPNCapabilityRegistry(coverage_summary_path=coverage_summary_path)
         self.bridge = EVPNCapabilityBridge(registry=self.registry, policy_dir=policy_dir)

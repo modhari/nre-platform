@@ -341,7 +341,7 @@ def ingest(config: IngestConfig) -> Path:
     allowed = load_controlled_vocab(registry_dir / "tags.yaml", registry_dir / "scenarios.yaml")
 
     embedder = SentenceTransformer(config.embedding_model_name)
-    client = QdrantClient(url=config.qdrant_url, check_compatibility=False)
+    client = QdrantClient(url=config.qdrant_url)
     ensure_collection(client, config)
 
     run_id = now_utc_stamp()

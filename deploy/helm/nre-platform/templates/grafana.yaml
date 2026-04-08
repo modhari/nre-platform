@@ -1,0 +1,245 @@
+{{- if .Values.grafana.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource
+  namespace: {{ .Values.global.namespace }}
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: InfluxDB-NRE
+        type: influxdb
+        access: proxy
+        url: http://influxdb:8086
+        jsonData:
+          version: Flux
+          organization: nre
+          defaultBucket: nre
+          tlsSkipVerify: true
+        secureJsonData:
+          token: {{ .Values.influxdb.adminToken }}
+        isDefault: true
+        editable: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  namespace: {{ .Values.global.namespace }}
+data:
+  provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: nre-platform
+        orgId: 1
+        folder: NRE Platform
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 30
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-nre
+  namespace: {{ .Values.global.namespace }}
+data:
+  nre-evpn.json: |
+    {
+      "title": "NRE Platform — EVPN VXLAN Incidents",
+      "uid": "nre-evpn-01",
+      "refresh": "30s",
+      "time": { "from": "now-3h", "to": "now" },
+      "style": "dark",
+      "panels": [
+        {
+          "id": 1,
+          "title": "EVPN incident rate by scenario",
+          "description": "Each spike represents a detected EVPN fault. vtep_reachability and mac_mobility are two distinct incident types — the agent classifies and plans them independently.",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
+          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
+          "fieldConfig": {
+            "defaults": {
+              "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": false },
+              "color": { "mode": "palette-classic" }
+            }
+          },
+          "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+          "targets": [{
+            "refId": "A",
+            "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> aggregateWindow(every: 2m, fn: count, createEmpty: false)\n  |> group(columns: [\"scenario\", \"device\"])"
+          }]
+        },
+        {
+          "id": 2,
+          "title": "VTEP reachability — safe vs gated actions",
+          "description": "Example 1: VTEP 10.1.1.1 unreachable on leaf-01. Type-3 IMET route missing. Agent proposes 3 safe read-only inspection steps and 3 gated actions requiring approval before execution.",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
+          "fieldConfig": {
+            "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "safe_action_count" },
+                "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+              { "matcher": { "id": "byName", "options": "gated_action_count" },
+                "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+            ]
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"vtep_reachability_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+            },
+            {
+              "refId": "B",
+              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"vtep_reachability_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "MAC mobility storm — safe vs gated actions",
+          "description": "Example 2: MAC 00:50:56:aa:bb:cc flapping between leaf-01 and leaf-02 in VNI 10200. Agent detects rapid MAC mobility counter increment. 4 gated actions — higher gate count than VTEP scenario reflects higher blast radius of MAC table operations.",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
+          "fieldConfig": {
+            "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "safe_action_count" },
+                "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+              { "matcher": { "id": "byName", "options": "gated_action_count" },
+                "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+            ]
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"mac_mobility_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+            },
+            {
+              "refId": "B",
+              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"mac_mobility_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Approval gate activity",
+          "description": "Incidents requiring human approval before execution. Both EVPN scenarios gate destructive actions — clearing MAC entries or modifying VNI config requires operator sign-off.",
+          "type": "stat",
+          "gridPos": { "x": 0, "y": 16, "w": 6, "h": 6 },
+          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
+          "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
+          "targets": [{
+            "refId": "A",
+            "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\")\n  |> sum()"
+          }]
+        },
+        {
+          "id": 5,
+          "title": "Total safe actions proposed",
+          "type": "stat",
+          "gridPos": { "x": 6, "y": 16, "w": 6, "h": 6 },
+          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
+          "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
+          "targets": [{
+            "refId": "A",
+            "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> sum()"
+          }]
+        },
+        {
+          "id": 6,
+          "title": "Incidents by scenario (3h)",
+          "type": "barchart",
+          "gridPos": { "x": 12, "y": 16, "w": 12, "h": 6 },
+          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
+          "targets": [{
+            "refId": "A",
+            "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> group(columns: [\"scenario\"])\n  |> count()\n  |> group()"
+          }]
+        }
+      ],
+      "schemaVersion": 38,
+      "version": 1
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:{{ .Values.grafana.tag }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ .Values.grafana.adminPassword | quote }}
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: Viewer
+            - name: GF_USERS_DEFAULT_THEME
+              value: dark
+            - name: GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH
+              value: /var/lib/grafana/dashboards/nre-evpn.json
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: datasource
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboard-nre
+              mountPath: /var/lib/grafana/dashboards
+          resources:
+            {{- toYaml .Values.grafana.resources | nindent 12 }}
+      volumes:
+        - name: datasource
+          configMap:
+            name: grafana-datasource
+        - name: dashboard-provider
+          configMap:
+            name: grafana-dashboard-provider
+        - name: dashboard-nre
+          configMap:
+            name: grafana-dashboard-nre
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    app: grafana
+  type: {{ .Values.grafana.service.type }}
+  ports:
+    - port: 3000
+      targetPort: 3000
+      {{- if eq .Values.grafana.service.type "NodePort" }}
+      nodePort: {{ .Values.grafana.service.nodePort }}
+      {{- end }}
+{{- end }}

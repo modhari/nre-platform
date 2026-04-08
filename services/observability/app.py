@@ -117,6 +117,40 @@ def build_point(event: dict) -> Point | None:
             .time(event.get("ts"), WritePrecision.NS)
         )
 
+    elif event_type == "evpn_incident_snapshot":
+        return (
+            Point("nre_evpn_incidents")
+            .tag("fabric",            event.get("fabric",   "unknown"))
+            .tag("device",            event.get("device",   "unknown"))
+            .tag("scenario",          event.get("scenario", "unknown"))
+            .tag("vendor",            event.get("vendor",   "unknown"))
+            .tag("risk_class",        event.get("risk_class", "unknown"))
+            .tag("approval_required", _to_bool_str(
+                event.get("approval_required", False)
+            ))
+            .field("safe_action_count",  int(event.get("safe_action_count",  0)))
+            .field("gated_action_count", int(event.get("gated_action_count", 0)))
+            .field("confidence",         event.get("confidence", "unknown"))
+            .field("payload_json",       json.dumps(event))
+            .time(event.get("ts"), WritePrecision.NS)
+        )
+
+    elif event_type == "evpn_plan_snapshot":
+        return (
+            Point("nre_evpn_plans")
+            .tag("fabric",            event.get("fabric",   "unknown"))
+            .tag("device",            event.get("device",   "unknown"))
+            .tag("scenario",          event.get("scenario", "unknown"))
+            .tag("risk_class",        event.get("risk_class", "unknown"))
+            .tag("approval_required", _to_bool_str(
+                event.get("approval_required", False)
+            ))
+            .field("safe_step_count",  int(event.get("safe_step_count",  0)))
+            .field("gated_step_count", int(event.get("gated_step_count", 0)))
+            .field("payload_json",     json.dumps(event))
+            .time(event.get("ts"), WritePrecision.NS)
+        )
+
     # ── Unknown event type — drop silently ────────────────────────────────────
     print(
         f"[kafka_influx_writer] unknown event_type={event_type!r} — skipped"

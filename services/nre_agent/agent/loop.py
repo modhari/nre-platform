@@ -741,8 +741,14 @@ def run_agent_loop() -> None:
 
     while True:
         try:
-            if _agent_mode() == "bgp_diagnostics":
+            mode = _agent_mode()
+            if mode == "bgp_diagnostics":
                 _run_bgp_diagnostics_iteration()
+                time.sleep(interval)
+                continue
+
+            if mode == "evpn_diagnostics":
+                _run_evpn_diagnostics_iteration()
                 time.sleep(interval)
                 continue
 
@@ -776,3 +782,174 @@ def run_agent_loop() -> None:
             )
 
         time.sleep(interval)
+
+# ── EVPN diagnostics iteration ────────────────────────────────────────────────
+
+# Two synthetic EVPN incidents that cycle every iteration.
+# In production these would come from real device state via Capsule.
+_EVPN_SCENARIOS = [
+    {
+        "incident_id":  "evpn:prod-dc-west:leaf-01:vtep:10.1.1.1:unreachable",
+        "scenario":     "vtep_reachability_analysis",
+        "capability":   "bgp_evpn_peer_state",
+        "question":     (
+            "VTEP 10.1.1.1 is unreachable from leaf-01. "
+            "BGP EVPN session is established but the type-3 IMET route "
+            "is missing from the EVPN table. BUM traffic flooding is broken."
+        ),
+        "vendor":       "arista",
+        "nos_family":   "eos",
+        "device":       "leaf-01",
+        "fabric":       "prod-dc-west",
+        "vtep":         "10.1.1.1",
+        "vni":          10100,
+    },
+    {
+        "incident_id":  "evpn:prod-dc-west:leaf-02:mac:00:50:56:aa:bb:cc:mobility",
+        "scenario":     "mac_mobility_analysis",
+        "capability":   "evpn_mac_vrf_state",
+        "question":     (
+            "MAC address 00:50:56:aa:bb:cc is flapping between leaf-01 "
+            "and leaf-02 in VNI 10200. MAC mobility counter is incrementing "
+            "rapidly. Possible duplicate MAC or misconfigured bond."
+        ),
+        "vendor":       "arista",
+        "nos_family":   "eos",
+        "device":       "leaf-02",
+        "fabric":       "prod-dc-west",
+        "mac":          "00:50:56:aa:bb:cc",
+        "vni":          10200,
+    },
+]
+
+_evpn_scenario_index = 0
+
+
+def _run_evpn_diagnostics_iteration() -> None:
+    """
+    Execute one EVPN diagnostics cycle.
+
+    Cycles through the two synthetic EVPN incidents on each iteration:
+      1. VTEP unreachable — missing type-3 IMET route
+      2. MAC mobility storm — rapid MAC flapping between VTEPs
+
+    Steps:
+      1. Select next EVPN scenario
+      2. Call evpn.analyze via mcp_server → lattice EVPN analysis service
+      3. Assemble incident payload with reasoning + governed plan
+      4. Publish nre_evpn_incidents event to Kafka
+      5. Publish nre_evpn_plans event to Kafka
+    """
+    global _evpn_scenario_index
+
+    scenario_def = _EVPN_SCENARIOS[_evpn_scenario_index % len(_EVPN_SCENARIOS)]
+    _evpn_scenario_index += 1
+
+    incident_id = scenario_def["incident_id"]
+    ts          = _utc_now_iso()
+
+    print(
+        f"[nre_agent] evpn_iteration scenario={scenario_def['scenario']} "
+        f"device={scenario_def['device']}",
+        flush=True,
+    )
+
+    # ── Step 2: Call evpn.analyze via mcp_server ──────────────────────────────
+    try:
+        from agent.client import call_mcp_evpn_analyze
+        evpn_result = call_mcp_evpn_analyze(
+            question=scenario_def["question"],
+            vendor=scenario_def["vendor"],
+            nos_family=scenario_def["nos_family"],
+            scenario=scenario_def["scenario"],
+            capability=scenario_def["capability"],
+            device=scenario_def["device"],
+            fabric=scenario_def["fabric"],
+            vni=scenario_def.get("vni"),
+            mac=scenario_def.get("mac"),
+            incident_id=incident_id,
+            timestamp_utc=ts,
+        )
+    except Exception as exc:
+        print(
+            f"[nre_agent] evpn_analyze_error={type(exc).__name__} message={exc}",
+            flush=True,
+        )
+        return
+
+    reasoning      = evpn_result.get("reasoning", {})
+    governed_plan  = evpn_result.get("governed_plan", {})
+    mcp_plan       = evpn_result.get("mcp_plan", {})
+
+    findings       = reasoning.get("findings", [])
+    likely_causes  = reasoning.get("likely_causes", [])
+    safe_actions   = len(governed_plan.get("allowed_tools", []))
+    gated_actions  = len(governed_plan.get("downgraded_tools", [])) + \
+                     len(governed_plan.get("blocked_tools", []))
+    approval_req   = governed_plan.get("requires_approval", False)
+    risk_class     = mcp_plan.get("risk_class", "unknown")
+    confidence     = mcp_plan.get("confidence", "unknown")
+
+    print(
+        f"[nre_agent] evpn_incident incident_id={incident_id} "
+        f"scenario={scenario_def['scenario']} "
+        f"risk={risk_class} confidence={confidence} "
+        f"safe_actions={safe_actions} gated_actions={gated_actions} "
+        f"approval_required={approval_req}",
+        flush=True,
+    )
+
+    # ── Step 4: Publish incident event to Kafka ───────────────────────────────
+    incident_payload = {
+        "event_type":    "evpn_incident_snapshot",
+        "event_version": "v1",
+        "ts":            ts,
+        "incident_id":   incident_id,
+        "fabric":        scenario_def["fabric"],
+        "device":        scenario_def["device"],
+        "scenario":      scenario_def["scenario"],
+        "vendor":        scenario_def["vendor"],
+        "risk_class":    risk_class,
+        "confidence":    confidence,
+        "approval_required": approval_req,
+        "safe_action_count":   safe_actions,
+        "gated_action_count":  gated_actions,
+        "findings":      findings,
+        "likely_causes": likely_causes,
+        "payload":       evpn_result,
+    }
+
+    publish_kafka_event(
+        topic="nre.evpn_incidents",
+        key=incident_id,
+        payload=incident_payload,
+    )
+
+    # ── Step 5: Publish plan event to Kafka ───────────────────────────────────
+    plan_payload = {
+        "event_type":    "evpn_plan_snapshot",
+        "event_version": "v1",
+        "ts":            ts,
+        "incident_id":   incident_id,
+        "plan_id":       f"evpn_plan:{incident_id}",
+        "fabric":        scenario_def["fabric"],
+        "device":        scenario_def["device"],
+        "scenario":      scenario_def["scenario"],
+        "risk_class":    risk_class,
+        "approval_required": approval_req,
+        "safe_step_count":   safe_actions,
+        "gated_step_count":  gated_actions,
+        "payload":       evpn_result,
+    }
+
+    publish_kafka_event(
+        topic="nre.evpn_plans",
+        key=incident_id,
+        payload=plan_payload,
+    )
+
+    print(
+        f"[nre_agent] ts={ts} evpn_incident_id={incident_id} "
+        f"published to kafka",
+        flush=True,
+    )

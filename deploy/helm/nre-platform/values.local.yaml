@@ -87,7 +87,7 @@ nreAgent:
     type: NodePort
     port: 8090
     nodePort: 30090
-  mode: bgp_diagnostics
+  mode: evpn_diagnostics
   intervalSeconds: 300
   enableApi: "true"
   apiPort: 8090
@@ -200,7 +200,7 @@ observabilityPipeline:
       pullPolicy: Never
     env:
       KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      KAFKA_TOPICS: "nre.plans,nre.incidents"
+      KAFKA_TOPICS: "nre.plans,nre.incidents,nre.evpn_incidents,nre.evpn_plans"
       INFLUXDB_URL: "http://influxdb:8086"
       INFLUXDB_TOKEN: "nreadminsupersecrettoken"
       INFLUXDB_ORG: "nre"
@@ -314,3 +314,19 @@ capsule:
       limits:
         cpu: "200m"
         memory: "128Mi"
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+grafana:
+  enabled: true
+  tag: "10.4.2"
+  adminPassword: "nreadmin"
+  service:
+    type: NodePort
+    nodePort: 30300
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"

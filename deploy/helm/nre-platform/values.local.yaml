@@ -88,7 +88,7 @@ nreAgent:
     port: 8090
     nodePort: 30090
   mode: evpn_diagnostics
-  intervalSeconds: 300
+  intervalSeconds: 60
   enableApi: "true"
   apiPort: 8090
   mcp:

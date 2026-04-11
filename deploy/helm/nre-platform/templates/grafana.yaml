@@ -49,126 +49,539 @@ metadata:
 data:
   nre-evpn.json: |
     {
-      "title": "NRE Platform — EVPN VXLAN Incidents",
-      "uid": "nre-evpn-01",
-      "refresh": "30s",
-      "time": { "from": "now-3h", "to": "now" },
-      "style": "dark",
-      "panels": [
-        {
-          "id": 1,
-          "title": "EVPN incident rate by scenario",
-          "description": "Each spike represents a detected EVPN fault. vtep_reachability and mac_mobility are two distinct incident types — the agent classifies and plans them independently.",
-          "type": "timeseries",
-          "gridPos": { "x": 0, "y": 0, "w": 24, "h": 8 },
-          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
-          "fieldConfig": {
-            "defaults": {
-              "custom": { "lineWidth": 2, "fillOpacity": 15, "spanNulls": false },
-              "color": { "mode": "palette-classic" }
-            }
-          },
-          "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
-          "targets": [{
-            "refId": "A",
-            "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> aggregateWindow(every: 2m, fn: count, createEmpty: false)\n  |> group(columns: [\"scenario\", \"device\"])"
-          }]
+        "title": "NRE Platform \u2014 EVPN VXLAN Incidents",
+        "uid": "nre-evpn-01",
+        "refresh": "30s",
+        "time": {
+            "from": "now-3h",
+            "to": "now"
         },
-        {
-          "id": 2,
-          "title": "VTEP reachability — safe vs gated actions",
-          "description": "Example 1: VTEP 10.1.1.1 unreachable on leaf-01. Type-3 IMET route missing. Agent proposes 3 safe read-only inspection steps and 3 gated actions requiring approval before execution.",
-          "type": "timeseries",
-          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
-          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
-          "fieldConfig": {
-            "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
-            "overrides": [
-              { "matcher": { "id": "byName", "options": "safe_action_count" },
-                "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
-              { "matcher": { "id": "byName", "options": "gated_action_count" },
-                "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
-            ]
-          },
-          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
-          "targets": [
+        "style": "dark",
+        "panels": [
             {
-              "refId": "A",
-              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"vtep_reachability_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                "id": 1,
+                "title": "EVPN incident rate by scenario",
+                "description": "Each data point is one agent loop iteration detecting an active EVPN fault. Five scenarios classified and planned independently.",
+                "type": "timeseries",
+                "gridPos": {
+                    "x": 0,
+                    "y": 0,
+                    "w": 24,
+                    "h": 8
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "custom": {
+                            "lineWidth": 2,
+                            "fillOpacity": 15,
+                            "spanNulls": false
+                        },
+                        "color": {
+                            "mode": "palette-classic"
+                        }
+                    }
+                },
+                "options": {
+                    "legend": {
+                        "displayMode": "table",
+                        "placement": "bottom"
+                    }
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> aggregateWindow(every: 2m, fn: count, createEmpty: false)\n  |> group(columns: [\"scenario\", \"device\"])"
+                    }
+                ]
             },
             {
-              "refId": "B",
-              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"vtep_reachability_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
-            }
-          ]
-        },
-        {
-          "id": 3,
-          "title": "MAC mobility storm — safe vs gated actions",
-          "description": "Example 2: MAC 00:50:56:aa:bb:cc flapping between leaf-01 and leaf-02 in VNI 10200. Agent detects rapid MAC mobility counter increment. 4 gated actions — higher gate count than VTEP scenario reflects higher blast radius of MAC table operations.",
-          "type": "timeseries",
-          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
-          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
-          "fieldConfig": {
-            "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
-            "overrides": [
-              { "matcher": { "id": "byName", "options": "safe_action_count" },
-                "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
-              { "matcher": { "id": "byName", "options": "gated_action_count" },
-                "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
-            ]
-          },
-          "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
-          "targets": [
-            {
-              "refId": "A",
-              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"mac_mobility_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                "id": 2,
+                "title": "VTEP reachability \u2014 safe vs gated (medium)",
+                "description": "VTEP unreachable, type-3 IMET route missing. 3 safe read-only steps, 3 gated actions requiring approval.",
+                "type": "timeseries",
+                "gridPos": {
+                    "x": 0,
+                    "y": 8,
+                    "w": 12,
+                    "h": 7
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "custom": {
+                            "lineWidth": 2,
+                            "fillOpacity": 10
+                        }
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "safe_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "green",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "gated_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "orange",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "options": {
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    }
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"vtep_reachability_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    },
+                    {
+                        "refId": "B",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"vtep_reachability_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    }
+                ]
             },
             {
-              "refId": "B",
-              "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"mac_mobility_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                "id": 3,
+                "title": "MAC mobility storm \u2014 safe vs gated (medium)",
+                "description": "MAC flapping between VTEPs. 4 gated actions \u2014 higher blast radius than VTEP reachability.",
+                "type": "timeseries",
+                "gridPos": {
+                    "x": 12,
+                    "y": 8,
+                    "w": 12,
+                    "h": 7
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "custom": {
+                            "lineWidth": 2,
+                            "fillOpacity": 10
+                        }
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "safe_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "green",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "gated_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "orange",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "options": {
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    }
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"mac_mobility_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    },
+                    {
+                        "refId": "B",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"mac_mobility_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    }
+                ]
+            },
+            {
+                "id": 4,
+                "title": "VNI mismatch \u2014 safe vs gated (high)",
+                "description": "VNI operationally down. VLAN-VNI mapping inconsistency across fabric devices.",
+                "type": "timeseries",
+                "gridPos": {
+                    "x": 0,
+                    "y": 15,
+                    "w": 12,
+                    "h": 7
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "custom": {
+                            "lineWidth": 2,
+                            "fillOpacity": 10
+                        }
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "safe_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "green",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "gated_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "red",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "options": {
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    }
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"vni_mismatch_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    },
+                    {
+                        "refId": "B",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"vni_mismatch_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    }
+                ]
+            },
+            {
+                "id": 5,
+                "title": "Type-5 route leaking \u2014 safe vs gated (high)",
+                "description": "Prefix count spike above threshold. VRF route policy too permissive.",
+                "type": "timeseries",
+                "gridPos": {
+                    "x": 12,
+                    "y": 15,
+                    "w": 12,
+                    "h": 7
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "custom": {
+                            "lineWidth": 2,
+                            "fillOpacity": 10
+                        }
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "safe_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "green",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "gated_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "red",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "options": {
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    }
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"type5_route_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    },
+                    {
+                        "refId": "B",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"type5_route_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    }
+                ]
+            },
+            {
+                "id": 6,
+                "title": "ESI split-brain \u2014 safe vs gated (critical)",
+                "description": "Active links below expected. DF election broken. Highest gate count \u2014 5 actions require approval.",
+                "type": "timeseries",
+                "gridPos": {
+                    "x": 0,
+                    "y": 22,
+                    "w": 14,
+                    "h": 7
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "fieldConfig": {
+                    "defaults": {
+                        "custom": {
+                            "lineWidth": 2,
+                            "fillOpacity": 10
+                        }
+                    },
+                    "overrides": [
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "safe_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "green",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "matcher": {
+                                "id": "byName",
+                                "options": "gated_action_count"
+                            },
+                            "properties": [
+                                {
+                                    "id": "color",
+                                    "value": {
+                                        "fixedColor": "dark-red",
+                                        "mode": "fixed"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "options": {
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    }
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.scenario == \"esi_split_brain_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    },
+                    {
+                        "refId": "B",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\" and r.scenario == \"esi_split_brain_analysis\")\n  |> aggregateWindow(every: 2m, fn: mean, createEmpty: false)"
+                    }
+                ]
+            },
+            {
+                "id": 7,
+                "title": "Incidents by scenario (3h)",
+                "type": "barchart",
+                "gridPos": {
+                    "x": 14,
+                    "y": 22,
+                    "w": 10,
+                    "h": 7
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> group(columns: [\"scenario\"])\n  |> count()\n  |> group()"
+                    }
+                ]
+            },
+            {
+                "id": 8,
+                "title": "Total gated actions (3h)",
+                "type": "stat",
+                "gridPos": {
+                    "x": 0,
+                    "y": 29,
+                    "w": 6,
+                    "h": 5
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "area"
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\")\n  |> sum()"
+                    }
+                ]
+            },
+            {
+                "id": 9,
+                "title": "Total safe actions (3h)",
+                "type": "stat",
+                "gridPos": {
+                    "x": 6,
+                    "y": 29,
+                    "w": 6,
+                    "h": 5
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "area"
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> sum()"
+                    }
+                ]
+            },
+            {
+                "id": 10,
+                "title": "Critical incidents (3h)",
+                "type": "stat",
+                "gridPos": {
+                    "x": 12,
+                    "y": 29,
+                    "w": 6,
+                    "h": 5
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "area"
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.risk_class == \"critical\")\n  |> count()"
+                    }
+                ]
+            },
+            {
+                "id": 11,
+                "title": "High risk incidents (3h)",
+                "type": "stat",
+                "gridPos": {
+                    "x": 18,
+                    "y": 29,
+                    "w": 6,
+                    "h": 5
+                },
+                "datasource": {
+                    "type": "influxdb",
+                    "uid": "InfluxDB-NRE"
+                },
+                "options": {
+                    "colorMode": "background",
+                    "graphMode": "area"
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\" and r.risk_class == \"high\")\n  |> count()"
+                    }
+                ]
             }
-          ]
-        },
-        {
-          "id": 4,
-          "title": "Approval gate activity",
-          "description": "Incidents requiring human approval before execution. Both EVPN scenarios gate destructive actions — clearing MAC entries or modifying VNI config requires operator sign-off.",
-          "type": "stat",
-          "gridPos": { "x": 0, "y": 16, "w": 6, "h": 6 },
-          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
-          "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
-          "targets": [{
-            "refId": "A",
-            "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"gated_action_count\")\n  |> sum()"
-          }]
-        },
-        {
-          "id": 5,
-          "title": "Total safe actions proposed",
-          "type": "stat",
-          "gridPos": { "x": 6, "y": 16, "w": 6, "h": 6 },
-          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
-          "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
-          "targets": [{
-            "refId": "A",
-            "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> sum()"
-          }]
-        },
-        {
-          "id": 6,
-          "title": "Incidents by scenario (3h)",
-          "type": "barchart",
-          "gridPos": { "x": 12, "y": 16, "w": 12, "h": 6 },
-          "datasource": { "type": "influxdb", "uid": "InfluxDB-NRE" },
-          "targets": [{
-            "refId": "A",
-            "query": "from(bucket:\"nre\")\n  |> range(start: -3h)\n  |> filter(fn: (r) => r._measurement == \"nre_evpn_incidents\" and r._field == \"safe_action_count\")\n  |> group(columns: [\"scenario\"])\n  |> count()\n  |> group()"
-          }]
-        }
-      ],
-      "schemaVersion": 38,
-      "version": 1
+        ],
+        "schemaVersion": 38,
+        "version": 2
     }
 ---
 apiVersion: apps/v1

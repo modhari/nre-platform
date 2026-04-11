@@ -11,3 +11,4 @@ kafka-python
 # qdrant-client is included for any future direct Qdrant calls from
 # the agent and for local scripts and integration tests.
 qdrant-client==1.9.1
+pyyaml==6.0.1

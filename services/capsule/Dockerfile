@@ -37,6 +37,7 @@ RUN pip install --no-cache-dir -e .
 
 # ── Copy entrypoint ───────────────────────────────────────────────────────────
 COPY bgp_snapshot_writer.py .
+COPY evpn_snapshot_writer.py .
 
 # ── Run as non-root ───────────────────────────────────────────────────────────
 RUN useradd -m -u 1000 capsule
@@ -45,8 +46,14 @@ USER capsule
 # ── Environment defaults ──────────────────────────────────────────────────────
 ENV GNMIC_OUTPUT_FILE=/data/gnmic_bgp.json
 ENV SNAPSHOT_OUTPUT_FILE=/data/bgp_snapshot.json
+ENV GNMIC_EVPN_OUTPUT_FILE=/data/gnmic_evpn.json
+ENV EVPN_SNAPSHOT_OUTPUT_FILE=/data/evpn_snapshot.json
 ENV POLL_INTERVAL_SECONDS=30
 ENV FABRIC_NAME=prod-dc-west
 ENV STARTUP_WAIT_SECONDS=300
+ENV MAC_MOBILITY_THRESHOLD=5
+ENV TYPE5_SPIKE_THRESHOLD=50
 
-CMD ["python", "bgp_snapshot_writer.py"]
+COPY run.py .
+
+CMD ["python", "run.py"]

@@ -2,22 +2,16 @@
 juniper.py — Juniper Junos vendor pack for Capsule.
 
 Sensor groups:
-  system   — CPU utilization
-  bgp      — BGP neighbor state, prefix counts, last error, RR config
-
-Juniper Junos supports OpenConfig BGP under the standard
-network-instances hierarchy with origin="openconfig".
-
-gNMI port on Junos: 32767 (default)
-Enable with:
-  set system services extension-service request-response grpc clear-text port 32767
-  set system services extension-service request-response grpc skip-authentication
+  system        — CPU utilization
+  bgp_session   — BGP neighbor state
+  bgp_prefixes  — BGP prefix counts
+  bgp_topology  — Route reflector topology
+  evpn          — VNI state, VTEP reachability, MAC mobility, ESI
 
 Notes:
-  Junos requires the path to omit the top-level /configuration container.
-  All paths here start at /network-instances/... which is correct for gNMI.
-  For vendor-native Junos paths the origin would be "junos-openconfig" or
-  "native" — those are added here only when OpenConfig coverage is absent.
+  Junos supports OpenConfig EVPN paths via origin="openconfig".
+  For MAC table state, Junos native paths are more reliable but
+  OpenConfig coverage is sufficient for anomaly detection.
 """
 from __future__ import annotations
 
@@ -29,42 +23,20 @@ from gnmi_collection_agent.vendors.base import SensorGroup, VendorPack
 
 
 class JuniperPack(VendorPack):
-    """
-    Vendor pack for Juniper Junos devices.
-
-    Matches any device whose vendor field is 'juniper' (case-insensitive).
-    """
 
     def match(self, ident: DeviceIdentity) -> bool:
         return ident.vendor.lower() == "juniper"
 
     def sensor_groups(self, supports_openconfig: bool) -> List[SensorGroup]:
-        """
-        Return sensor groups for Juniper Junos.
-
-        Junos has supported OpenConfig BGP since 17.3. Modern Junos releases
-        (18.1+) have full OpenConfig coverage for BGP neighbor state and
-        prefix counts. Fall back to empty if OpenConfig is not available
-        rather than guessing at native paths.
-        """
         if not supports_openconfig:
             return []
 
         return [
-            # ── System telemetry ──────────────────────────────────────────────
             SensorGroup(
                 name="system",
                 sample_interval_s=10.0,
-                paths=[
-                    OpenConfigPaths.system_cpu_total,
-                ],
+                paths=[OpenConfigPaths.system_cpu_total],
             ),
-
-            # ── BGP session state ─────────────────────────────────────────────
-            # On Junos, session-state values are uppercase:
-            # IDLE, CONNECT, ACTIVE, OPENSENT, OPENCONFIRM, ESTABLISHED
-            # The snapshot writer normalizes these to lowercase before
-            # writing bgp_snapshot.json.
             SensorGroup(
                 name="bgp_session",
                 sample_interval_s=30.0,
@@ -77,13 +49,6 @@ class JuniperPack(VendorPack):
                     OpenConfigPaths.bgp_global_as,
                 ],
             ),
-
-            # ── BGP prefix counts ─────────────────────────────────────────────
-            # On Junos, received counts reflect routes after import policy.
-            # Use 'show route receive-protocol bgp <peer>' to see pre-policy
-            # counts — that requires soft-reconfiguration which is not
-            # available via OpenConfig telemetry. The OpenConfig path returns
-            # post-policy counts, which is what nre-agent uses.
             SensorGroup(
                 name="bgp_prefixes",
                 sample_interval_s=60.0,
@@ -92,14 +57,34 @@ class JuniperPack(VendorPack):
                     OpenConfigPaths.bgp_neighbor_prefixes_advertised,
                 ],
             ),
-
-            # ── BGP route reflector topology ──────────────────────────────────
             SensorGroup(
                 name="bgp_topology",
                 sample_interval_s=300.0,
                 paths=[
                     OpenConfigPaths.bgp_neighbor_route_reflector_client,
                     OpenConfigPaths.bgp_neighbor_hold_time,
+                ],
+            ),
+            SensorGroup(
+                name="evpn",
+                sample_interval_s=60.0,
+                paths=[
+                    OpenConfigPaths.bgp_evpn_peer_session_state,
+                    OpenConfigPaths.bgp_evpn_prefixes_received,
+                    OpenConfigPaths.bgp_evpn_prefixes_sent,
+                    OpenConfigPaths.vxlan_vni_state,
+                    OpenConfigPaths.vxlan_vni_admin_state,
+                    OpenConfigPaths.vxlan_vni_oper_state,
+                    OpenConfigPaths.vxlan_vtep_peer_state,
+                    OpenConfigPaths.vxlan_vtep_peer_vni,
+                    OpenConfigPaths.evpn_mac_vni,
+                    OpenConfigPaths.evpn_mac_entry_type,
+                    OpenConfigPaths.evpn_mac_mobility_seq,
+                    OpenConfigPaths.evpn_mac_peer_vtep,
+                    OpenConfigPaths.evpn_routes_type3_imet,
+                    OpenConfigPaths.evpn_esi_state,
+                    OpenConfigPaths.evpn_esi_df_state,
+                    OpenConfigPaths.evpn_esi_active_links,
                 ],
             ),
         ]

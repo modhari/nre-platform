@@ -748,7 +748,13 @@ def run_agent_loop() -> None:
                 continue
 
             if mode == "evpn_diagnostics":
-                _run_evpn_diagnostics_iteration()
+                from agent.evpn_loop import run_evpn_diagnostics_iteration, load_scenario_registry, _evpn_registry_path
+                if not hasattr(run_agent_loop, '_evpn_registry'):
+                    run_agent_loop._evpn_registry = load_scenario_registry(_evpn_registry_path())
+                run_evpn_diagnostics_iteration(
+                    registry=run_agent_loop._evpn_registry,
+                    publish_fn=publish_kafka_event,
+                )
                 time.sleep(interval)
                 continue
 

@@ -58,6 +58,12 @@ spec:
               value: {{ .Values.lattice.env.QDRANT_URL }}
             - name: NRE_AGENT_MCP_URL
               value: {{ .Values.nreAgent.mcp.url | quote }}
+            - name: NRE_AGENT_EVPN_SNAPSHOT_FILE
+              value: "/data/evpn_snapshot.json"
+            - name: NRE_AGENT_EVPN_FABRIC
+              value: {{ .Values.bgpDiagnostics.fabric | quote }}
+            - name: NRE_AGENT_EVPN_VENDOR
+              value: {{ .Values.bgpRagVendor | default "arista" | quote }}
             {{- if .Values.bgpDiagnostics.enabled }}
             - name: NRE_AGENT_BGP_FABRIC
               value: {{ .Values.bgpDiagnostics.fabric | quote }}

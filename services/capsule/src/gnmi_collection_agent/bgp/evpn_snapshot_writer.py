@@ -153,7 +153,7 @@ def parse_evpn_events(
             keys = _extract_keys(path_key)
 
             # ── VNI state ──────────────────────────────────────────────────
-            if leaf in ("vni", "oper-state", "admin-state"):
+            if leaf in ("vni", "oper-state", "admin-state") and "endpoint" not in path_key:
                 vni_key = vlan_id or keys.get("vlan-id", "unknown")
                 if vni_key not in vni_table[device]:
                     vni_table[device][vni_key] = {
@@ -190,6 +190,31 @@ def parse_evpn_events(
                         vni_int = int(vni_val)
                         if vni_int not in vnis:
                             vnis.append(vni_int)
+                    except (ValueError, TypeError):
+                        pass
+
+            # ── VTEP VNI association ──────────────────────────────────────
+            # Separate event: .../endpoint[peer-ip=X]/state/vni = VNI_ID
+            # Associates a VNI with its VTEP entry.
+            elif leaf == "vni" and "endpoint" in path_key:
+                vtep_key = (peer_ip
+                            or tags.get("endpoint_peer-ip")
+                            or keys.get("peer-ip"))
+                if vtep_key:
+                    if vtep_key not in vtep_table[device]:
+                        vtep_table[device][vtep_key] = {
+                            "vtep_ip":          vtep_key,
+                            "reachable":        True,
+                            "vnis":             [],
+                            "last_seen":        timestamp,
+                            "network_instance": ni,
+                        }
+                    try:
+                        vni_int = int(value) if value is not None else None
+                        if vni_int is not None:
+                            vnis = vtep_table[device][vtep_key]["vnis"]
+                            if vni_int not in vnis:
+                                vnis.append(vni_int)
                     except (ValueError, TypeError):
                         pass
 
@@ -335,9 +360,13 @@ def detect_anomalies(
     esi_table   = parsed["esi_table"].get(device, {})
 
     # ── vtep_unreachable ─────────────────────────────────────────────────────
-    # A VTEP is unreachable when it appears in the peer table but has no
-    # corresponding type-3 IMET route — BUM flooding is broken.
-    type3_count = evpn_routes.get("type3_count", 0)
+    # A VTEP is unreachable when:
+    #   (a) it appears in the peer table but has reachable=False, OR
+    #   (b) the type-3 IMET route count is less than the number of known
+    #       VTEPs — meaning some VTEPs have withdrawn their IMET route.
+    type3_count  = evpn_routes.get("type3_count", 0)
+    vtep_count   = len(vtep_table)
+
     for vtep_ip, vtep_state in vtep_table.items():
         if not vtep_state.get("reachable", True):
             for vni in vtep_state.get("vnis", [None]):
@@ -345,9 +374,40 @@ def detect_anomalies(
                     "type":    "vtep_unreachable",
                     "vtep_ip": vtep_ip,
                     "vni":     vni,
-                    "detail":  "type-3 IMET route missing"
-                    if type3_count == 0 else "vtep marked unreachable",
+                    "detail":  "vtep marked unreachable in peer table",
                 })
+
+    # Check per-VNI VTEP coverage using VNI table.
+    # Only flag vtep_unreachable when:
+    #   - the VNI is operationally up (session healthy, routes gone)
+    #   - AND the device has at least one other VNI with remote VTEPs
+    #     (confirming the VTEP table is being populated normally)
+    #   - AND this specific VNI has zero remote VTEPs
+    # This avoids false positives when ALL VNIs have no VTEPs (healthy
+    # scenario or first poll before VTEP table is populated).
+    vnis_with_vteps = set()
+    for vtep_ip, vtep_state in vtep_table.items():
+        for vni_id in vtep_state.get("vnis", []):
+            vnis_with_vteps.add(vni_id)
+
+    for vlan_key, vni_state in vni_table.items():
+        vni_id = vni_state.get("vni")
+        if not vni_id:
+            continue
+        vteps_for_vni = [
+            vtep_ip for vtep_ip, vtep_state in vtep_table.items()
+            if vni_id in vtep_state.get("vnis", [])
+        ]
+        other_vnis_have_vteps = bool(vnis_with_vteps - {vni_id})
+        if (len(vteps_for_vni) == 0
+                and vni_state.get("state", "unknown") == "up"
+                and other_vnis_have_vteps):
+            anomalies.append({
+                "type":    "vtep_unreachable",
+                "vtep_ip": "all",
+                "vni":     vni_id,
+                "detail":  "no remote VTEPs advertising type-3 IMET route for this VNI",
+            })
 
     # ── mac_mobility_storm ───────────────────────────────────────────────────
     # MAC mobility counter above threshold indicates flapping MAC.

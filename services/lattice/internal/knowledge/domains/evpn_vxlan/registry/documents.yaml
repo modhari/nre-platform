@@ -287,3 +287,83 @@
       - bgp_evpn_peer_state
       - evpn_mac_vrf_state
       - vxlan_vni_oper_state
+
+- document_id: evpn_esi_multihoming_guide
+  filename: evpn_esi_multihoming_guide.jsonl
+  vendor: multi
+  nos_family: multi
+  source_type: vendor_design_guide
+  priority: high
+  role:
+    - reasoning_primary
+    - troubleshooting_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: high
+    model_paths: low
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - multihoming
+      - esi
+    scenarios:
+      - esi_split_brain_analysis
+      - multihoming_design_selection
+    capabilities:
+      - bgp_evpn_peer_state
+      - evpn_vtep_config
+
+- document_id: evpn_vni_mismatch_guide
+  filename: evpn_vni_mismatch_guide.jsonl
+  vendor: multi
+  nos_family: multi
+  source_type: vendor_design_guide
+  priority: high
+  role:
+    - reasoning_primary
+    - troubleshooting_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: high
+    model_paths: low
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - vxlan
+      - vni
+    scenarios:
+      - vni_mismatch_analysis
+    capabilities:
+      - vxlan_vni_oper_state
+      - vxlan_vni_config
+
+- document_id: evpn_type5_route_guide
+  filename: evpn_type5_route_guide.jsonl
+  vendor: multi
+  nos_family: multi
+  source_type: vendor_design_guide
+  priority: high
+  role:
+    - reasoning_primary
+    - troubleshooting_reference
+  trust_level:
+    vendor_design_guidance: high
+    protocol_background: high
+    configuration_examples: high
+    model_paths: low
+  domain: evpn_vxlan
+  tags:
+    domain:
+      - evpn
+      - type5
+      - vrf
+    scenarios:
+      - type5_route_analysis
+      - type2_type5_forwarding_analysis
+    capabilities:
+      - bgp_evpn_peer_config
+      - bgp_evpn_peer_state

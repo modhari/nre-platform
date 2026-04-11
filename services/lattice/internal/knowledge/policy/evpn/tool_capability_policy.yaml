@@ -71,3 +71,21 @@ tools:
   inspect_vendor_specific_evpn_state:
     required_capabilities:
       - bgp_evpn_peer_state
+  inspect_esi_df_election_state:
+    required_capabilities:
+      - bgp_evpn_peer_state
+      - evpn_vtep_config
+
+  inspect_vni_vlan_mapping:
+    required_capabilities:
+      - vxlan_vni_oper_state
+      - vxlan_vni_config
+
+  inspect_nve_interface_state:
+    required_capabilities:
+      - vxlan_vni_oper_state
+
+  inspect_vrf_route_policy:
+    required_capabilities:
+      - bgp_evpn_peer_config
+      - bgp_evpn_peer_state

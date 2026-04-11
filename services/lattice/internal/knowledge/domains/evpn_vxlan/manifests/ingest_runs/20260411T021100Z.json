@@ -1,0 +1,113 @@
+{
+  "run_id": "20260411T021100Z",
+  "domain": "evpn_vxlan",
+  "collection_name": "nre_evpn_vxlan_docs",
+  "embedding_model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "started_at_utc": "2026-04-11T02:11:00.210722+00:00",
+  "documents": [
+    {
+      "document_id": "cisco_vxlan_evpn_book",
+      "filename": "VXLAN_EVPN_CISCO.pdf",
+      "vendor": "cisco",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/cisco/VXLAN_EVPN_CISCO.pdf",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/cisco_vxlan_evpn_book.jsonl",
+      "pdf_sha256": "e2cc48d0feecb617170e008a4a785b4c37f2e3a20252638050e517bb8cf17db9",
+      "chunks_written": 1,
+      "status": "success"
+    },
+    {
+      "document_id": "cisco_mpbgp_evpn_vxlan_design",
+      "filename": "VXLAN_Network_with_MP-BGP_EVPN_Control_Plane.pdf",
+      "vendor": "cisco",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/cisco/VXLAN_Network_with_MP-BGP_EVPN_Control_Plane.pdf",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/cisco_mpbgp_evpn_vxlan_design.jsonl",
+      "pdf_sha256": "c4aefe4cf23685bfeac18f40affc40b036fe70d90c2218ceaea25aa26cd1266c",
+      "chunks_written": 1,
+      "status": "success"
+    },
+    {
+      "document_id": "juniper_evpn_vxlan_guide",
+      "filename": "juniper_evpn_vxlan_guide.pdf",
+      "vendor": "juniper",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/juniper/juniper_evpn_vxlan_guide.pdf",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/juniper_evpn_vxlan_guide.jsonl",
+      "pdf_sha256": "14befeb6a0b44dd4726c50b0ad72f1570db0b3b45281cf7b3db32b63a3780ce2",
+      "chunks_written": 4,
+      "status": "success"
+    },
+    {
+      "document_id": "juniper_evpn_vxlan_dc_deployment",
+      "filename": "TW_DCDeployment_v2_Juniper.pdf",
+      "vendor": "juniper",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/juniper/TW_DCDeployment_v2_Juniper.pdf",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/juniper_evpn_vxlan_dc_deployment.jsonl",
+      "pdf_sha256": "2e8e280504045ea803d29a25d0470b246ae7e61ed0e17c169545a6608d58720d",
+      "chunks_written": 2,
+      "status": "success"
+    },
+    {
+      "document_id": "arista_evpn_multihoming_wp",
+      "filename": "Arista-EVPN-DC-Multihoming-for-Resiliency-WP.pdf",
+      "vendor": "arista",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/arista/Arista-EVPN-DC-Multihoming-for-Resiliency-WP.pdf",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/arista_evpn_multihoming_wp.jsonl",
+      "pdf_sha256": "c401c1399cebd406eba60c11ff787cc85d65f881ef0d0f3b38d7d3e886d69667",
+      "chunks_written": 2,
+      "status": "success"
+    },
+    {
+      "document_id": "arista_eos_evpn_vxlan_manual",
+      "filename": "Arista-EOS-User-Manual.pdf",
+      "vendor": "arista",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/arista/Arista-EOS-User-Manual.pdf",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/arista_eos_evpn_vxlan_manual.jsonl",
+      "pdf_sha256": "26befb13dc61f769f27850362ff7fb7cf7d7289ccdeec007e1fb34f99387b19b",
+      "chunks_written": 6,
+      "status": "success"
+    },
+    {
+      "document_id": "arista_evpn_gateway_multidomain_dci_wp",
+      "filename": "Arista-EVPN-Data-Center-EVPN-Gateway.pdf",
+      "vendor": "arista",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/arista/Arista-EVPN-Data-Center-EVPN-Gateway.pdf",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/arista_evpn_gateway_multidomain_dci_wp.jsonl",
+      "pdf_sha256": "381e6143c90aac9c57d67d9eb47891e50bd451a3a34728408e3b6cc6f8540121",
+      "chunks_written": 1,
+      "status": "success"
+    },
+    {
+      "document_id": "evpn_esi_multihoming_guide",
+      "filename": "evpn_esi_multihoming_guide.jsonl",
+      "vendor": "multi",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/multi/evpn_esi_multihoming_guide.jsonl",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/evpn_esi_multihoming_guide.jsonl",
+      "pdf_sha256": "ffc0319906e3f502735c83e232d9360bf0f5a27c030b463fd3c7ef73b083285c",
+      "chunks_written": 3,
+      "status": "success"
+    },
+    {
+      "document_id": "evpn_vni_mismatch_guide",
+      "filename": "evpn_vni_mismatch_guide.jsonl",
+      "vendor": "multi",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/multi/evpn_vni_mismatch_guide.jsonl",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/evpn_vni_mismatch_guide.jsonl",
+      "pdf_sha256": "4cbdc0c46867baaf3cccb1d98ef0de345b33ac008bccefb0c4f5ee84279daa9a",
+      "chunks_written": 3,
+      "status": "success"
+    },
+    {
+      "document_id": "evpn_type5_route_guide",
+      "filename": "evpn_type5_route_guide.jsonl",
+      "vendor": "multi",
+      "pdf_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/raw/multi/evpn_type5_route_guide.jsonl",
+      "chunk_path": "/Users/hari/nre-platform/services/lattice/internal/knowledge/domains/evpn_vxlan/chunks/jsonl/evpn_type5_route_guide.jsonl",
+      "pdf_sha256": "0b83cfed34614d536f4e62a2c0f99b00375c828c4cd6176775361cfa8ee0dffa",
+      "chunks_written": 3,
+      "status": "success"
+    }
+  ],
+  "total_documents": 10,
+  "total_chunks": 26,
+  "finished_at_utc": "2026-04-11T02:11:00.978602+00:00",
+  "status": "success"
+}

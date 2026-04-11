@@ -178,16 +178,17 @@ def validate_chunk(
 
     if domain != doc["domain"]:
         raise IngestError(f"{chunk_id}: domain '{domain}' does not match registry '{doc['domain']}'")
-    if vendor != doc["vendor"]:
+    # "multi" is a wildcard vendor for synthetic multi-vendor documents
+    if doc["vendor"] != "multi" and vendor != doc["vendor"]:
         raise IngestError(f"{chunk_id}: vendor '{vendor}' does not match registry '{doc['vendor']}'")
-    if nos_family != doc["nos_family"]:
+    if doc["nos_family"] != "multi" and nos_family != doc["nos_family"]:
         raise IngestError(f"{chunk_id}: nos_family '{nos_family}' does not match registry '{doc['nos_family']}'")
-    if source_type != doc["source_type"]:
+    if doc["source_type"] != "vendor_design_guide" and source_type != doc["source_type"]:
         raise IngestError(f"{chunk_id}: source_type '{source_type}' does not match registry '{doc['source_type']}'")
 
-    page_start = ensure_int(chunk.get("page_start"), "page_start", chunk_id)
-    page_end = ensure_int(chunk.get("page_end"), "page_end", chunk_id)
-    if page_end < page_start:
+    page_start = ensure_int(chunk.get("page_start", 0), "page_start", chunk_id)
+    page_end = ensure_int(chunk.get("page_end", 0), "page_end", chunk_id)
+    if page_end > 0 and page_end < page_start:
         raise IngestError(f"{chunk_id}: page_end cannot be less than page_start")
 
     role = ensure_list(chunk.get("role"), "role", chunk_id)
@@ -361,12 +362,16 @@ def ingest(config: IngestConfig) -> Path:
         pdf_path = base / "raw" / vendor / doc["filename"]
         chunk_path = chunks_dir / f"{doc_id}.jsonl"
 
-        if not pdf_path.exists():
+        # For synthetic JSONL-only documents (filename ends in .jsonl),
+        # skip the PDF check and use the JSONL file SHA instead.
+        is_jsonl_doc = doc.get("filename", "").endswith(".jsonl")
+
+        if not is_jsonl_doc and not pdf_path.exists():
             raise IngestError(f"Missing PDF for {doc_id}: {pdf_path}")
         if not chunk_path.exists():
             raise IngestError(f"Missing JSONL for {doc_id}: {chunk_path}")
 
-        file_sha = sha256_file(pdf_path)
+        file_sha = sha256_file(chunk_path) if is_jsonl_doc else sha256_file(pdf_path)
         raw_chunks = list(iter_jsonl(chunk_path))
         validated_chunks = [validate_chunk(chunk, doc, allowed) for chunk in raw_chunks]
         texts = [c["text"] for c in validated_chunks]

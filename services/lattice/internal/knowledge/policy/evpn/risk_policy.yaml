@@ -1,7 +1,13 @@
 risk:
+  critical:
+    scenarios:
+      - esi_split_brain_analysis
+
   high:
     scenarios:
       - dci_connectivity_analysis
+      - vni_mismatch_analysis
+      - type5_route_analysis
       - gateway_forwarding_analysis
       - hierarchical_domain_scaling_analysis
       - multihoming_design_selection

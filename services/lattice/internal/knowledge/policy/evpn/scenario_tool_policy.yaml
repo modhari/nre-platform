@@ -81,3 +81,24 @@ scenarios:
       - inspect_vxlan_vni_oper_state
       - inspect_multihoming_model
       - inspect_ethernet_segment_state
+  esi_split_brain_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_ethernet_segment_state
+      - inspect_vtep_reachability
+      - inspect_multihoming_model
+      - inspect_esi_df_election_state
+
+  vni_mismatch_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_vxlan_vni_oper_state
+      - inspect_vni_vlan_mapping
+      - inspect_nve_interface_state
+
+  type5_route_analysis:
+    recommended_tools:
+      - inspect_evpn_control_plane_state
+      - inspect_type2_type5_route_preference
+      - inspect_evpn_route_scope
+      - inspect_vrf_route_policy

@@ -470,6 +470,9 @@ def compute_evpn_device_state(
                 remote_vteps = []
                 type3_count  = 1  # only self
                 oper_state   = "up"  # session still up, routes gone
+            # leaf-03 VNI 10200 goes operationally down (VLAN-VNI mismatch)
+            elif device.name == "leaf-03" and vni == 10200:
+                oper_state   = "down"
 
         elif scenario == "flap":
             # leaf-02 VNI 10200 VTEP table flaps
@@ -536,11 +539,19 @@ def compute_evpn_device_state(
             "active_links": active_links,
         })
 
+    # ── Type-5 route spike ────────────────────────────────────────────────
+    # During flap scenario, leaf-04 advertises an excess of type-5 routes
+    # simulating a VRF route policy misconfiguration.
+    type5_spike = 0
+    if scenario == "flap" and device.name == "leaf-04":
+        type5_spike = 75  # above TYPE5_SPIKE_THRESHOLD of 50
+
     return {
         "vni_states":   vni_states,
         "mac_states":   mac_states,
         "esi_states":   esi_states,
         "type3_counts": type3_counts,
+        "type5_spike":  type5_spike,
     }
 
 
@@ -568,6 +579,27 @@ def generate_evpn_events(
                 vni_state["vni"],
                 state["type3_counts"].get(vni_state["vni"], 0),
             ))
+
+        # Type-5 route spike event (injected during flap for leaf-04)
+        type5_spike = state.get("type5_spike", 0)
+        if type5_spike > 0:
+            ni   = "default"
+            port = device.gnmi_port
+            for i in range(type5_spike):
+                prefix = f"192.168.{i // 256}.{i % 256}/32"
+                events.append({
+                    "source": f"{device.name}:{port}",
+                    "timestamp": _now_ns(),
+                    "time": _now_iso(),
+                    "tags": {
+                        "network-instance_name": ni,
+                        "subscription-name": "evpn",
+                        "source": f"{device.name}:{port}",
+                    },
+                    "values": {
+                        f"/network-instances/network-instance[name={ni}]/protocols/protocol[identifier=BGP][name=BGP]/bgp/rib/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]/l2vpn-evpn/loc-rib/routes/route-distinguisher[route-distinguisher={device.local_vtep}:100]/routes/route[prefix={prefix}]/state/route-type": "type5",
+                    },
+                })
 
         # MAC events
         for mac_state in state["mac_states"]:

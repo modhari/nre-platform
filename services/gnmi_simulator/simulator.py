@@ -470,6 +470,11 @@ def compute_evpn_device_state(
                 remote_vteps = []
                 type3_count  = 1  # only self
                 oper_state   = "up"  # session still up, routes gone
+            # leaf-02 VNI 10100 also loses remote VTEPs — correlated fault
+            elif device.name == "leaf-02" and vni == 10100:
+                remote_vteps = []
+                type3_count  = 1  # only self
+                oper_state   = "up"
             # leaf-03 VNI 10200 goes operationally down (VLAN-VNI mismatch)
             elif device.name == "leaf-03" and vni == 10200:
                 oper_state   = "down"

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from agent.approvals import (
     ApprovalRecord,
@@ -12,6 +13,13 @@ from agent.approvals import (
 )
 
 app = FastAPI(title="nre-agent-approvals", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")

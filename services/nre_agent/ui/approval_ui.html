@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NRE Platform — Approval Workflow</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f7f4; color: #1a1a18; min-height: 100vh; }
+  .container { max-width: 760px; margin: 0 auto; padding: 2rem 1rem; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .header h1 { font-size: 18px; font-weight: 500; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+  .stat { background: #fff; border: 0.5px solid #e5e3dc; border-radius: 10px; padding: 0.75rem 1rem; }
+  .stat-label { font-size: 11px; color: #888780; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 500; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 1rem; }
+  select { font-size: 13px; padding: 5px 10px; border-radius: 8px; border: 0.5px solid #d3d1c7; background: #fff; color: #1a1a18; cursor: pointer; }
+  .card { background: #fff; border: 0.5px solid #e5e3dc; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
+  .card-title { font-size: 12px; font-weight: 500; font-family: 'SF Mono', monospace; color: #1a1a18; word-break: break-all; margin-bottom: 6px; }
+  .card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; }
+  .badge-pending  { background: #faeeda; color: #633806; }
+  .badge-approved { background: #eaf3de; color: #27500a; }
+  .badge-rejected { background: #fcebeb; color: #791f1f; }
+  .badge-medium   { background: #faeeda; color: #633806; }
+  .badge-high     { background: #faece7; color: #712b13; }
+  .badge-critical { background: #fcebeb; color: #791f1f; }
+  .badge-low      { background: #eaf3de; color: #27500a; }
+  .badge-gray     { background: #f1efe8; color: #5f5e5a; }
+  .reason { font-size: 12px; color: #5f5e5a; line-height: 1.5; margin-bottom: 8px; }
+  .updated { font-size: 11px; color: #b4b2a9; margin-bottom: 10px; }
+  .actions { display: flex; gap: 8px; }
+  button { font-size: 13px; padding: 6px 14px; border-radius: 8px; border: 0.5px solid #d3d1c7; background: transparent; cursor: pointer; color: #1a1a18; transition: background 0.15s; }
+  button:hover { background: #f1efe8; }
+  .btn-approve { border-color: #639922; color: #3b6d11; }
+  .btn-approve:hover { background: #eaf3de; }
+  .btn-reject { border-color: #e24b4a; color: #a32d2d; }
+  .btn-reject:hover { background: #fcebeb; }
+  .btn-refresh { font-size: 12px; padding: 5px 12px; }
+  .empty { text-align: center; padding: 3rem; color: #888780; font-size: 14px; }
+  .toast { position: fixed; top: 1rem; right: 1rem; font-size: 13px; padding: 8px 16px; border-radius: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; }
+  .toast-ok  { background: #eaf3de; color: #27500a; border: 0.5px solid #639922; }
+  .toast-err { background: #fcebeb; color: #791f1f; border: 0.5px solid #e24b4a; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1c1a; color: #e8e6df; }
+    .card, .stat { background: #282825; border-color: #3d3d3a; }
+    .stat-label { color: #888780; }
+    select { background: #282825; color: #e8e6df; border-color: #444441; }
+    button { color: #e8e6df; border-color: #444441; }
+    button:hover { background: #333330; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><i class="ti ti-shield-check" style="font-size:20px;vertical-align:-4px;margin-right:8px"></i>Approval workflow</h1>
+    <button class="btn-refresh" onclick="load()"><i class="ti ti-refresh" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Refresh</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Pending</div><div class="stat-value" id="s-pending">—</div></div>
+    <div class="stat"><div class="stat-label">Approved</div><div class="stat-value" id="s-approved">—</div></div>
+    <div class="stat"><div class="stat-label">Rejected</div><div class="stat-value" id="s-rejected">—</div></div>
+  </div>
+  <div class="filter-bar">
+    <select id="filter-status" onchange="render()">
+      <option value="all">All statuses</option>
+      <option value="pending" selected>Pending only</option>
+      <option value="approved">Approved</option>
+      <option value="rejected">Rejected</option>
+    </select>
+    <select id="filter-risk" onchange="render()">
+      <option value="all">All risk levels</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+  </div>
+  <div id="list"></div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+const API = 'http://localhost:8090'\;
+let records = [];
+
+function fmtTime(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+  catch { return ts; }
+}
+
+function render() {
+  const sf = document.getElementById('filter-status').value;
+  const rf = document.getElementById('filter-risk').value;
+  const filtered = records.filter(r => {
+    if (sf !== 'all' && r.status !== sf) return false;
+    if (rf !== 'all' && (r.risk_level||'').toLowerCase() !== rf) return false;
+    return true;
+  });
+  document.getElementById('s-pending').textContent  = records.filter(r=>r.status==='pending').length;
+  document.getElementById('s-approved').textContent = records.filter(r=>r.status==='approved').length;
+  document.getElementById('s-rejected').textContent = records.filter(r=>r.status==='rejected').length;
+  const list = document.getElementById('list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><i class="ti ti-inbox" style="font-size:28px;display:block;margin-bottom:8px"></i>No approvals match this filter</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(r => {
+    const isPending = r.status === 'pending';
+    const riskCls = ['critical','high','medium','low'].includes(r.risk_level) ? `badge-${r.risk_level}` : 'badge-gray';
+    const statusCls = r.status === 'approved' ? 'badge-approved' : r.status === 'rejected' ? 'badge-rejected' : 'badge-pending';
+    const reasons = (r.reasons||[]).map(x=>`<div>· ${x}</div>`).join('');
+    const sid = r.scenario.length > 70 ? r.scenario.slice(0,70)+'…' : r.scenario;
+    return `<div class="card">
+      <div class="card-title">${sid}</div>
+      <div class="card-meta">
+        <span class="badge ${statusCls}">${r.status}</span>
+        <span class="badge ${riskCls}">${r.risk_level||'unknown'}</span>
+        ${r.blast_radius_score!=null?`<span class="badge badge-gray">blast radius ${r.blast_radius_score}</span>`:''}
+      </div>
+      ${reasons?`<div class="reason">${reasons}</div>`:''}
+      <div class="updated">Updated ${fmtTime(r.updated_at)}</div>
+      ${isPending?`<div class="actions">
+        <button class="btn-approve" onclick="act('${r.scenario}','approve')"><i class="ti ti-check" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Approve</button>
+        <button class="btn-reject" onclick="act('${r.scenario}','reject')"><i class="ti ti-x" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Reject</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function toast(msg, ok) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${ok?'toast-ok':'toast-err'}`;
+  setTimeout(()=>t.className='toast', 2500);
+}
+
+async function act(scenario, action) {
+  try {
+    const r = await fetch(`${API}/approvals/${encodeURIComponent(scenario)}/${action}`,{method:'POST'});
+    if (!r.ok) throw new Error(await r.text());
+    toast(`${action==='approve'?'Approved':'Rejected'} ✓`, true);
+    await load();
+  } catch(e) { toast(`Failed: ${e.message}`, false); }
+}
+
+async function load() {
+  try {
+    const r = await fetch(`${API}/approvals`);
+    if (!r.ok) throw new Error('API error');
+    const data = await r.json();
+    records = data.approvals || [];
+    render();
+  } catch(e) {
+    document.getElementById('list').innerHTML = `<div class="empty" style="color:#a32d2d"><i class="ti ti-wifi-off" style="font-size:28px;display:block;margin-bottom:8px"></i>Cannot reach localhost:8090<br><small>Is nre-agent running?</small></div>`;
+  }
+}
+
+load();
+setInterval(load, 15000);
+</script>
+</body>
+</html>

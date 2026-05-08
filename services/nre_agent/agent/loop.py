@@ -4,6 +4,8 @@ loop.py — NRE agent control loop.
 Two operating modes, selected via NRE_AGENT_MODE:
 
   bgp_diagnostics (default)
+  evpn_diagnostics
+  dual_diagnostics    — BGP + EVPN simultaneously
     Loads a BGP snapshot file, calls mcp_server for diagnosis, enriches
     the result with history queries, RAG context, and remediation
     planning, then publishes structured events to Kafka.
@@ -751,6 +753,20 @@ def run_agent_loop() -> None:
                 from agent.evpn_loop import run_evpn_diagnostics_iteration, load_scenario_registry, _evpn_registry_path
                 if not hasattr(run_agent_loop, '_evpn_registry'):
                     run_agent_loop._evpn_registry = load_scenario_registry(_evpn_registry_path())
+                run_evpn_diagnostics_iteration(
+                    registry=run_agent_loop._evpn_registry,
+                    publish_fn=publish_kafka_event,
+                )
+                time.sleep(interval)
+                continue
+
+            if mode == "dual_diagnostics":
+                from agent.evpn_loop import run_evpn_diagnostics_iteration, load_scenario_registry, _evpn_registry_path
+                if not hasattr(run_agent_loop, '_evpn_registry'):
+                    run_agent_loop._evpn_registry = load_scenario_registry(_evpn_registry_path())
+                # BGP first — faster, lower resource
+                _run_bgp_diagnostics_iteration()
+                # EVPN second — reads separate snapshot
                 run_evpn_diagnostics_iteration(
                     registry=run_agent_loop._evpn_registry,
                     publish_fn=publish_kafka_event,

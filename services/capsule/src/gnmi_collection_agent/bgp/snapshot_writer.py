@@ -502,30 +502,35 @@ def run() -> None:
         gnmic_file, snapshot_file, interval, fabric,
     )
 
-    last_mtime: float = 0.0
-
-    while True:
+    def _process_bgp() -> None:
         try:
-            # ── Only reprocess if the input file changed ───────────────────
-            current_mtime = gnmic_file.stat().st_mtime \
-                if gnmic_file.exists() else 0.0
-
-            if current_mtime != last_mtime:
-                last_mtime = current_mtime
-
-                raw    = read_gnmic_output(gnmic_file)
-                peers  = parse_gnmic_events(raw)
-                snap   = build_snapshot(peers, fabric)
-
-                write_snapshot(snap, snapshot_file)
-
-            else:
-                LOG.debug("gnmic output unchanged — skipping")
-
+            raw   = read_gnmic_output(gnmic_file)
+            peers = parse_gnmic_events(raw)
+            snap  = build_snapshot(peers, fabric)
+            write_snapshot(snap, snapshot_file)
         except Exception as exc:
             LOG.error("snapshot_writer error: %s", exc)
 
-        time.sleep(interval)
+    if gnmic_file.exists():
+        _process_bgp()
+
+    try:
+        from watchfiles import watch
+        LOG.info("bgp_snapshot_writer watching %s for changes", gnmic_file)
+        for _ in watch(str(gnmic_file), poll_delay_ms=500):
+            _process_bgp()
+    except ImportError:
+        LOG.warning("watchfiles not available — falling back to polling")
+        last_mtime: float = 0.0
+        while True:
+            try:
+                current_mtime = gnmic_file.stat().st_mtime if gnmic_file.exists() else 0.0
+                if current_mtime != last_mtime:
+                    last_mtime = current_mtime
+                    _process_bgp()
+            except Exception as exc:
+                LOG.error("snapshot_writer poll error: %s", exc)
+            time.sleep(interval)
 
 
 if __name__ == "__main__":

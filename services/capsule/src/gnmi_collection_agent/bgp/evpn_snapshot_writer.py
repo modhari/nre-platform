@@ -605,32 +605,40 @@ def run() -> None:
         evpn_file, snapshot_file, interval, fabric,
     )
 
-    last_mtime: float = 0.0
-
-    while True:
+    def _process() -> None:
         try:
-            current_mtime = evpn_file.stat().st_mtime \
-                if evpn_file.exists() else 0.0
-
-            if current_mtime != last_mtime:
-                last_mtime = current_mtime
-
-                raw     = read_gnmic_evpn_output(evpn_file)
-                parsed  = parse_evpn_events(raw)
-                snap    = build_evpn_snapshot(
-                    parsed=parsed,
-                    fabric=fabric,
-                    mac_mobility_threshold=mac_threshold,
-                    type5_spike_threshold=type5_threshold,
-                )
-                write_evpn_snapshot(snap, snapshot_file)
-            else:
-                LOG.debug("gnmic EVPN output unchanged — skipping")
-
+            raw    = read_gnmic_evpn_output(evpn_file)
+            parsed = parse_evpn_events(raw)
+            snap   = build_evpn_snapshot(
+                parsed=parsed,
+                fabric=fabric,
+                mac_mobility_threshold=mac_threshold,
+                type5_spike_threshold=type5_threshold,
+            )
+            write_evpn_snapshot(snap, snapshot_file)
         except Exception as exc:
             LOG.error("evpn_snapshot_writer error: %s", exc)
 
-        time.sleep(interval)
+    if evpn_file.exists():
+        _process()
+
+    try:
+        from watchfiles import watch
+        LOG.info("evpn_snapshot_writer watching %s for changes", evpn_file)
+        for _ in watch(str(evpn_file), poll_delay_ms=500):
+            _process()
+    except ImportError:
+        LOG.warning("watchfiles not available — falling back to polling")
+        last_mtime: float = 0.0
+        while True:
+            try:
+                current_mtime = evpn_file.stat().st_mtime if evpn_file.exists() else 0.0
+                if current_mtime != last_mtime:
+                    last_mtime = current_mtime
+                    _process()
+            except Exception as exc:
+                LOG.error("evpn_snapshot_writer poll error: %s", exc)
+            time.sleep(interval)
 
 
 if __name__ == "__main__":

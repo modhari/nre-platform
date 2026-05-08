@@ -386,6 +386,19 @@ def run_evpn_diagnostics_iteration(
             key=incident_id,
             payload=incident_payload,
         )
+
+        # Record for cross-domain correlation
+        try:
+            from agent.cross_domain_correlator import record_evpn_incident
+            record_evpn_incident(
+                fabric=fabric,
+                device=device,
+                scenario=scenario,
+                incident_id=incident_id,
+                anomaly_type=anomaly_type,
+            )
+        except Exception:
+            pass
         publish_fn(
             topic="nre.evpn_plans",
             key=incident_id,
@@ -448,6 +461,20 @@ def run_evpn_diagnostics_iteration(
             "risk=%s incident_id=%s",
             device, scenario, risk_class, incident_id,
         )
+
+        # Record for cross-domain correlation
+        try:
+            from agent.cross_domain_correlator import record_evpn_incident
+            record_evpn_incident(
+                fabric=fabric,
+                device=device,
+                scenario=scenario,
+                incident_id=incident_id,
+                anomaly_type=anomaly_type,
+            )
+            print(f"[nre_agent] cross_domain_evpn_recorded device={device} scenario={scenario}", flush=True)
+        except Exception as _exc:
+            print(f"[nre_agent] cross_domain_evpn_record_error {_exc}", flush=True)
 
         try:
             evpn_result = call_mcp_evpn_analyze(

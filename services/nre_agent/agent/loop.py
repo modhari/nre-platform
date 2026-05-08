@@ -463,6 +463,18 @@ def _run_bgp_diagnostics_iteration() -> None:
         },
     )
 
+    # ── Record for cross-domain correlation ───────────────────────────────────
+    try:
+        from agent.cross_domain_correlator import record_bgp_incident
+        record_bgp_incident(
+            fabric=str(getattr(decision, "fabric", "unknown") or "unknown"),
+            device=str(getattr(decision, "device", "unknown") or "unknown"),
+            root_cause=str(getattr(decision, "root_cause", "unknown") or "unknown"),
+            incident_id=str(decision.incident_id),
+        )
+    except Exception:
+        pass
+
     # ── Step 9b: Publish plan event to Kafka ──────────────────────────────────
     plan_payload = execution_plan_to_dict(plan)
 
@@ -762,6 +774,7 @@ def run_agent_loop() -> None:
 
             if mode == "dual_diagnostics":
                 from agent.evpn_loop import run_evpn_diagnostics_iteration, load_scenario_registry, _evpn_registry_path
+                from agent.cross_domain_correlator import check_and_publish_correlations
                 if not hasattr(run_agent_loop, '_evpn_registry'):
                     run_agent_loop._evpn_registry = load_scenario_registry(_evpn_registry_path())
                 # BGP first — faster, lower resource
@@ -771,6 +784,8 @@ def run_agent_loop() -> None:
                     registry=run_agent_loop._evpn_registry,
                     publish_fn=publish_kafka_event,
                 )
+                # Cross-domain correlation — after both loops complete
+                check_and_publish_correlations(publish_fn=publish_kafka_event)
                 time.sleep(interval)
                 continue
 

@@ -1,0 +1,125 @@
+{{- if .Values.gnmic.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gnmic-config
+  namespace: {{ .Values.global.namespace }}
+data:
+  gnmic.yaml: |
+    # gNMI collector configuration for NRE Platform
+    # Replace simulator targets with real device addresses
+    # when real devices are available.
+    #
+    # Target format:
+    #   <device-name>:
+    #     address: <mgmt-ip>:<gnmi-port>
+    #     username: <username>
+    #     password: <password>
+    #     insecure: true          # set false for TLS
+    #     skip-verify: true       # set false for prod TLS
+    #
+    # Output writes to the shared PVC at:
+    #   /data/gnmic_bgp.json   (BGP sensor group)
+    #   /data/gnmic_evpn.json  (EVPN sensor group)
+
+    username: {{ .Values.gnmic.defaultUsername }}
+    password: {{ .Values.gnmic.defaultPassword }}
+    insecure: {{ .Values.gnmic.insecure }}
+    skip-verify: {{ .Values.gnmic.skipVerify }}
+    encoding: json_ietf
+    log: true
+
+    targets:
+    {{- range .Values.gnmic.targets }}
+      {{ .name }}:
+        address: {{ .address }}
+        {{- if .username }}
+        username: {{ .username }}
+        {{- end }}
+        {{- if .password }}
+        password: {{ .password }}
+        {{- end }}
+    {{- end }}
+
+    subscriptions:
+      bgp_session:
+        paths:
+          - /network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/session-state
+          - /network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/last-error
+          - /network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/afi-safis/afi-safi/state/prefixes/received
+          - /network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/afi-safis/afi-safi/state/prefixes/sent
+        mode: stream
+        stream-mode: sample
+        sample-interval: 30s
+        encoding: json_ietf
+
+      evpn:
+        paths:
+          - /network-instances/network-instance/vlans/vlan/vxlan/state/vni
+          - /network-instances/network-instance/vlans/vlan/vxlan/state/oper-state
+          - /network-instances/network-instance/vlans/vlan/vxlan/endpoints/endpoint/state/peer-ip
+          - /network-instances/network-instance/vlans/vlan/vxlan/endpoints/endpoint/state/vni
+          - /network-instances/network-instance/fdb/mac-table/entries/entry/state/mobility-seq-no
+          - /network-instances/network-instance/evpn/ethernet-segments/ethernet-segment/state/esi
+          - /network-instances/network-instance/evpn/ethernet-segments/ethernet-segment/state/active-links
+        mode: stream
+        stream-mode: sample
+        sample-interval: 60s
+        encoding: json_ietf
+
+    outputs:
+      bgp-file:
+        type: file
+        filename: /data/gnmic_bgp.json
+        subscription:
+          - bgp_session
+        format: event
+
+      evpn-file:
+        type: file
+        filename: /data/gnmic_evpn.json
+        subscription:
+          - evpn
+        format: event
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gnmic-collector
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: gnmic-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gnmic-collector
+  template:
+    metadata:
+      labels:
+        app: gnmic-collector
+    spec:
+      containers:
+        - name: gnmic
+          image: ghcr.io/openconfig/gnmic:{{ .Values.gnmic.tag }}
+          imagePullPolicy: IfNotPresent
+          args:
+            - subscribe
+            - --config
+            - /etc/gnmic/gnmic.yaml
+          volumeMounts:
+            - name: gnmic-config
+              mountPath: /etc/gnmic
+            - name: data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.gnmic.resources | nindent 12 }}
+      volumes:
+        - name: gnmic-config
+          configMap:
+            name: gnmic-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: nre-data-pvc
+{{- end }}

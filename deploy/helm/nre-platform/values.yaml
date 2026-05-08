@@ -360,3 +360,22 @@ grafana:
     limits:
       cpu: "500m"
       memory: "512Mi"
+
+# ── Real device gnmic collector ───────────────────────────────────────────────
+# Set enabled: true and populate targets to use real devices.
+# When enabled, disable the gnmi-simulator (set gnmiSimulator.enabled: false).
+gnmic:
+  enabled: false
+  tag: "0.36.2"
+  defaultUsername: "admin"
+  defaultPassword: "admin"
+  insecure: true
+  skipVerify: true
+  targets: []
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"

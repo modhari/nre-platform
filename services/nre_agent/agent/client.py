@@ -315,3 +315,44 @@ def call_lattice(
             ),
         },
     }
+
+
+def call_mcp_evpn_execute_read_only(
+    *,
+    question: str,
+    vendor: str,
+    nos_family: str,
+    scenario: str,
+    capability: str,
+    device: str,
+    fabric: str,
+    snapshot: dict | None = None,
+    vni: int | None = None,
+    mac: str | None = None,
+    incident_id: str | None = None,
+    timestamp_utc: str | None = None,
+) -> dict:
+    """
+    Execute EVPN read-only safe steps via mcp-server → lattice.
+
+    Runs inspect_evpn_control_plane_state and defers all other tools
+    until concrete device read paths are wired.
+    """
+    response = _post_mcp(
+        "evpn.execute_read_only",
+        {
+            "question":      question,
+            "vendor":        vendor,
+            "nos_family":    nos_family,
+            "scenario":      scenario,
+            "capability":    capability,
+            "device":        device,
+            "fabric":        fabric,
+            "snapshot":      snapshot,
+            "vni":           vni,
+            "mac":           mac,
+            "incident_id":   incident_id,
+            "timestamp_utc": timestamp_utc,
+        },
+    )
+    return _unwrap_mcp_result(response)

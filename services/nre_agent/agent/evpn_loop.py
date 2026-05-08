@@ -542,3 +542,35 @@ def run_evpn_diagnostics_iteration(
                 "payload":           evpn_result,
             },
         )
+
+        # ── Execute safe steps ────────────────────────────────────────────
+        if safe_actions > 0:
+            try:
+                from agent.client import call_mcp_evpn_execute_read_only
+                exec_result = call_mcp_evpn_execute_read_only(
+                    question=question,
+                    vendor=default_vendor,
+                    nos_family="eos",
+                    scenario=scenario,
+                    capability=capability,
+                    device=device,
+                    fabric=fabric,
+                    vni=anomaly.get("vni"),
+                    mac=anomaly.get("mac"),
+                    incident_id=incident_id,
+                    timestamp_utc=ts,
+                )
+                executed = exec_result.get("execution", {}).get("executed_tools", [])
+                deferred = exec_result.get("execution", {}).get("deferred_tools", [])
+                print(
+                    f"[nre_agent] evpn_execution"
+                    f" incident_id={incident_id}"
+                    f" executed={len(executed)}"
+                    f" deferred={len(deferred)}",
+                    flush=True,
+                )
+            except Exception as exc:
+                LOG.warning(
+                    "[evpn_loop] execute_read_only failed for %s: %s",
+                    incident_id, exc,
+                )
